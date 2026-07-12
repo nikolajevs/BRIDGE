@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>125 — карточная игра</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="conn" class="conn hidden">Переподключение…</div>
+<div id="toast" class="toast hidden"></div>
+
+<!-- ЭКРАН: имя -->
+<section id="screen-name" class="screen center-screen">
+  <div class="intro">
+    <h1 class="brand">125</h1>
+    <p class="tagline">карточная игра за общим столом · 2–6 игроков</p>
+    <div class="row">
+      <input id="name-input" type="text" maxlength="20" placeholder="Ваше имя" autocomplete="off">
+      <button id="name-btn" class="btn primary">За стол</button>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: лобби -->
+<section id="screen-lobby" class="screen center-screen hidden">
+  <div class="panel lobby-panel">
+    <h2 class="panel-title">Лобби</h2>
+    <p class="hello-line">Вы — <b id="lobby-name"></b> · <a href="#" id="change-name">сменить имя</a></p>
+
+    <div class="lobby-block">
+      <h3>Открытые столы</h3>
+      <div id="tables-list" class="tables-list"></div>
+    </div>
+
+    <div class="lobby-block">
+      <h3>Свой стол</h3>
+      <div class="row">
+        <input id="table-name-input" type="text" maxlength="24" placeholder="Название стола (необязательно)">
+        <button id="create-btn" class="btn primary">Создать</button>
+      </div>
+    </div>
+
+    <div class="lobby-block">
+      <h3>Присоединиться по коду</h3>
+      <div class="row">
+        <input id="join-code-input" type="text" maxlength="4" placeholder="Код, напр. K7XM" style="text-transform:uppercase">
+        <button id="join-code-btn" class="btn">Войти</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: стол (до игры) -->
+<section id="screen-table" class="screen center-screen hidden">
+  <div class="panel table-panel">
+    <h2 class="panel-title" id="table-title">Стол</h2>
+    <p class="table-code-line">Код для друзей: <span class="code" id="table-code"></span></p>
+    <div id="table-players" class="table-players"></div>
+    <div class="row table-actions">
+      <button id="start-btn" class="btn primary hidden">Начать игру</button>
+      <span id="wait-host" class="muted hidden">Ждём, пока создатель стола начнёт игру…</span>
+      <button id="leave-btn" class="btn ghost">Выйти</button>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: игра -->
+<section id="screen-game" class="screen hidden">
+  <header class="game-top">
+    <div class="game-title">
+      <span class="brand small">125</span>
+      <span id="g-table-name" class="muted"></span>
+    </div>
+    <div class="game-meta">
+      <span id="g-round"></span>
+      <button id="g-log-toggle" class="btn ghost tiny">Журнал</button>
+      <button id="g-leave" class="btn ghost tiny">Выйти</button>
+    </div>
+  </header>
+
+  <div class="game-body">
+    <main class="table-area">
+      <div id="opponents" class="opponents"></div>
+
+      <div class="felt">
+        <div class="felt-inner">
+          <div class="pile deck" id="deck-pile" title="Прикуп">
+            <div class="card back"></div>
+            <div class="deck-count" id="deck-count">36</div>
+          </div>
+          <div class="pile discard" id="discard-pile"></div>
+          <div class="badges" id="badges"></div>
+        </div>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="me-area">
+        <div class="hand" id="hand"></div>
+        <div class="actions">
+          <button id="draw-btn" class="btn">Взять карту</button>
+          <button id="pass-btn" class="btn ghost">Пас</button>
+        </div>
+        <div class="me-info" id="me-info"></div>
+      </div>
+    </main>
+
+    <aside class="side" id="side">
+      <div class="side-tabs">
+        <span>Журнал и чат</span>
+        <button id="side-close" class="btn ghost tiny">×</button>
+      </div>
+      <div class="log" id="log"></div>
+      <div class="chat-row">
+        <input id="chat-input" type="text" maxlength="200" placeholder="Сообщение столу…">
+        <button id="chat-btn" class="btn tiny">→</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- выбор масти для валета -->
+  <div id="suit-modal" class="modal hidden">
+    <div class="modal-box">
+      <h3>Валет: закажите масть</h3>
+      <div class="suit-btns">
+        <button class="suit-btn black" data-suit="♠">♠</button>
+        <button class="suit-btn black" data-suit="♣">♣</button>
+        <button class="suit-btn red" data-suit="♥">♥</button>
+        <button class="suit-btn red" data-suit="♦">♦</button>
+      </div>
+      <button id="suit-cancel" class="btn ghost">Отмена</button>
+    </div>
+  </div>
+
+  <!-- итоги раунда -->
+  <div id="round-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h3 id="round-title">Раунд окончен</h3>
+      <table class="results" id="round-results"></table>
+      <div class="row modal-actions">
+        <button id="next-round-btn" class="btn primary hidden">Следующий раунд</button>
+        <span id="next-round-wait" class="muted hidden">Ждём создателя стола…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- конец партии -->
+  <div id="over-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h3>Партия окончена</h3>
+      <p class="winner-line" id="winner-line"></p>
+      <table class="results" id="over-results"></table>
+      <div class="row modal-actions">
+        <button id="rematch-btn" class="btn primary hidden">Сыграть ещё</button>
+        <span id="rematch-wait" class="muted hidden">Создатель стола может начать новую партию</span>
+        <button id="over-leave-btn" class="btn ghost">Выйти в лобби</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="client.js"></script>
+</body>
+</html>
