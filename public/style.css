@@ -151,6 +151,55 @@ input::placeholder { color: #6e5b49; }
 }
 .table-actions { margin-top: 8px; justify-content: space-between; }
 
+/* ---------- вход / аккаунты ---------- */
+
+.auth-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; }
+.auth-tab {
+  font-family: var(--body); font-size: 14px;
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  cursor: pointer;
+}
+.auth-tab.active { border-color: var(--accent-dim); color: var(--accent); background: var(--bg-2); }
+.auth-pane { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.auth-pane .row { flex-direction: row; }
+.wide-btn { width: 100%; }
+.auth-hint { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+.auth-error {
+  margin: 14px 0 0; color: #f0a08b; font-size: 14px;
+  background: #3a2117; border: 1px solid var(--danger); border-radius: 8px; padding: 8px 12px;
+}
+.acc-badge {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: #33240d; background: var(--accent); border-radius: 4px; padding: 2px 6px;
+}
+
+/* ---------- личный кабинет ---------- */
+
+.cabinet-panel { max-width: 560px; }
+.cabinet-stats { margin-bottom: 8px; }
+.stat-name { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.stat-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat {
+  flex: 1 1 84px; text-align: center;
+  background: #1a110d; border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px;
+}
+.stat-val { font-family: var(--disp); font-size: 26px; color: var(--accent); }
+.stat-lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.cabinet-actions { margin-top: 18px; justify-content: space-between; }
+
+.leaderboard { display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; }
+.lb-row {
+  display: grid; grid-template-columns: 34px 1fr auto auto; gap: 10px; align-items: baseline;
+  padding: 8px 12px; background: #1a110d; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 14px;
+}
+.lb-row.me { border-color: var(--accent); }
+.lb-rank { font-family: var(--mono); color: var(--muted); text-align: right; }
+.lb-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-won { color: var(--accent); font-family: var(--mono); font-size: 13px; }
+.lb-played { font-size: 12px; }
+
 /* ---------- игровой экран ---------- */
 
 #screen-game { display: flex; flex-direction: column; height: 100dvh; }

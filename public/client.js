@@ -9,7 +9,12 @@ const store = {
   set token(v) { localStorage.setItem('g125_token', v); },
   get name() { return localStorage.getItem('g125_name') || ''; },
   set name(v) { localStorage.setItem('g125_name', v); },
+  get auth() { return localStorage.getItem('g125_auth') || ''; },
+  set auth(v) { if (v) localStorage.setItem('g125_auth', v); else localStorage.removeItem('g125_auth'); },
 };
+
+let account = null;      // { login, name } когда вошли в аккаунт
+let pendingOpen = null;  // отложенное действие после открытия сокета
 
 let ws = null;
 let wsReady = false;
@@ -27,7 +32,9 @@ function connect() {
   ws.onopen = () => {
     wsReady = true;
     $('#conn').classList.add('hidden');
-    if (store.name) sendMsg({ type: 'hello', name: store.name, token: store.token });
+    if (pendingOpen) { const fn = pendingOpen; pendingOpen = null; fn(); return; }
+    if (store.auth) sendMsg({ type: 'hello', auth: store.auth, token: store.token });
+    else if (store.name) sendMsg({ type: 'hello', name: store.name, token: store.token });
   };
 
   ws.onmessage = (ev) => {
@@ -55,6 +62,28 @@ function dispatch(m) {
     case 'hello':
       store.token = m.token;
       store.name = m.name;
+      account = m.account || null;
+      break;
+    case 'auth':
+      store.auth = m.authToken;
+      account = { login: m.login, name: m.name };
+      lastProfile = m.stats || null;
+      authError('');
+      // входим в игру под аккаунтом
+      sendMsg({ type: 'hello', auth: store.auth, token: store.token });
+      break;
+    case 'loggedOut':
+      account = null;
+      store.auth = '';
+      show('name');
+      break;
+    case 'profile':
+      lastProfile = m.stats;
+      renderCabinet();
+      break;
+    case 'leaderboard':
+      lastLeaderboard = m.rows;
+      renderLeaderboard();
       break;
     case 'lobby':
       renderLobby(m);
@@ -77,16 +106,28 @@ function dispatch(m) {
       if (lastGame) renderLog(lastGame);
       break;
     case 'error':
-      toast(m.msg);
+      // ошибки входа/регистрации показываем на экране входа, прочее — тостом
+      if (currentScreen === 'name') authError(m.msg);
+      else toast(m.msg);
       break;
   }
+}
+
+let lastProfile = null;
+let lastLeaderboard = null;
+
+function authError(msg) {
+  const el = $('#auth-error');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('hidden', !msg);
 }
 
 // ---------- утилиты UI ----------
 
 function show(name) {
   currentScreen = name;
-  for (const s of ['name', 'lobby', 'table', 'game']) {
+  for (const s of ['name', 'lobby', 'cabinet', 'table', 'game']) {
     $('#screen-' + s).classList.toggle('hidden', s !== name);
   }
 }
@@ -122,6 +163,7 @@ function cardHTML(c, cls = '') {
 
 function renderLobby(m) {
   $('#lobby-name').textContent = store.name;
+  $('#lobby-acc-badge').classList.toggle('hidden', !account);
   const list = $('#tables-list');
   if (!m.tables.length) {
     list.innerHTML = '<div class="empty">Пока нет открытых столов — создайте свой</div>';
@@ -336,21 +378,111 @@ $('#suit-cancel').onclick = () => {
 
 // ---------- обработчики ----------
 
-function submitName() {
+// переключение вкладок входа
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    for (const name of ['guest', 'login', 'register']) {
+      $('#tab-' + name).classList.toggle('hidden', name !== tab.dataset.tab);
+    }
+    authError('');
+  };
+});
+
+function guestEnter() {
   const v = $('#name-input').value.trim();
-  if (!v) { toast('Введите имя'); return; }
+  if (!v) { authError('Введите имя'); return; }
+  store.auth = '';           // играем как гость
+  account = null;
   store.name = v;
   if (wsReady) sendMsg({ type: 'hello', name: v, token: store.token });
   else connect();
 }
-$('#name-btn').onclick = submitName;
-$('#name-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
+$('#name-btn').onclick = guestEnter;
+$('#name-input').addEventListener('keydown', e => { if (e.key === 'Enter') guestEnter(); });
+
+function doLogin() {
+  const login = $('#login-user').value.trim();
+  const pass = $('#login-pass').value;
+  if (!login || !pass) { authError('Введите логин и пароль'); return; }
+  ensureConnected(() => sendMsg({ type: 'login', login, password: pass }));
+}
+$('#login-btn').onclick = doLogin;
+$('#login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doRegister() {
+  const login = $('#reg-user').value.trim();
+  const name = $('#reg-name').value.trim();
+  const pass = $('#reg-pass').value;
+  if (!login || !pass) { authError('Введите логин и пароль'); return; }
+  ensureConnected(() => sendMsg({ type: 'register', login, name, password: pass }));
+}
+$('#reg-btn').onclick = doRegister;
+$('#reg-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+// гарантируем соединение, затем выполняем действие
+function ensureConnected(fn) {
+  if (wsReady) { fn(); return; }
+  pendingOpen = fn;
+  connect();
+}
 
 $('#change-name').onclick = (e) => {
   e.preventDefault();
   $('#name-input').value = store.name;
   show('name');
 };
+
+// личный кабинет
+$('#cabinet-link').onclick = (e) => {
+  e.preventDefault();
+  openCabinet();
+};
+$('#cabinet-back').onclick = () => show('lobby');
+$('#logout-btn').onclick = () => sendMsg({ type: 'logout', auth: store.auth });
+
+function openCabinet() {
+  lastProfile = null; lastLeaderboard = null;
+  renderCabinet(); renderLeaderboard();
+  if (account) sendMsg({ type: 'getProfile', auth: store.auth });
+  sendMsg({ type: 'getLeaderboard' });
+  show('cabinet');
+}
+
+function renderCabinet() {
+  const box = $('#cabinet-stats');
+  $('#logout-btn').classList.toggle('hidden', !account);
+  if (!account) {
+    box.innerHTML = '<p class="muted">Вы играете как гость. Войдите в аккаунт, чтобы сохранять статистику и попадать в топ-100.</p>';
+    return;
+  }
+  const s = lastProfile;
+  if (!s) { box.innerHTML = '<p class="muted">Загрузка…</p>'; return; }
+  box.innerHTML = `
+    <div class="stat-name">${esc(s.name)} <span class="muted">@${esc(s.login)}</span></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-val">#${s.rank}</div><div class="stat-lbl">место</div></div>
+      <div class="stat"><div class="stat-val">${s.gamesWon}</div><div class="stat-lbl">побед</div></div>
+      <div class="stat"><div class="stat-val">${s.gamesPlayed}</div><div class="stat-lbl">партий</div></div>
+      <div class="stat"><div class="stat-val">${s.winrate}%</div><div class="stat-lbl">винрейт</div></div>
+      <div class="stat"><div class="stat-val">${s.roundsWon}</div><div class="stat-lbl">раундов</div></div>
+    </div>`;
+}
+
+function renderLeaderboard() {
+  const box = $('#leaderboard');
+  const rows = lastLeaderboard;
+  if (!rows) { box.innerHTML = '<div class="muted">Загрузка…</div>'; return; }
+  if (!rows.length) { box.innerHTML = '<div class="muted">Пока нет сыгранных партий</div>'; return; }
+  box.innerHTML = rows.map((r, i) => `
+    <div class="lb-row${account && r.name === account.name ? ' me' : ''}">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-name">${esc(r.name)}</span>
+      <span class="lb-won">${r.games_won} побед</span>
+      <span class="lb-played muted">${r.games_played} партий</span>
+    </div>`).join('');
+}
 
 $('#create-btn').onclick = () => sendMsg({ type: 'createTable', name: $('#table-name-input').value });
 $('#join-code-btn').onclick = () => {

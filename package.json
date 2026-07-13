@@ -5,12 +5,13 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js && node test/db.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
+    "better-sqlite3": "^12.11.1",
     "ws": "^8.18.0"
   }
 }

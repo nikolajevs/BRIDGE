@@ -57,9 +57,11 @@ class Game {
     }));
     this.dealer = Math.floor(Math.random() * this.players.length);
     this.round = 0;
+    this.roundsWonByToken = {};
     this.log = [];
     this.phase = 'playing'; // playing | roundEnd | over
     this.winner = null;
+    this.winnerToken = null;
     this.roundResults = null;
     this.startRound();
   }
@@ -219,6 +221,7 @@ class Game {
     if (this.kingStreak >= 4) {
       this.phase = 'over';
       this.winner = p.name;
+      this.winnerToken = p.token;
       this.addLog(`Четыре короля подряд! ${p.name} выигрывает всю партию!`);
       return;
     }
@@ -376,6 +379,7 @@ class Game {
     if (act.length === 1) {
       this.phase = 'over';
       this.winner = act[0].name;
+      this.winnerToken = act[0].token;
       this.addLog(`${act[0].name} — победитель партии!`);
       return;
     }
@@ -450,6 +454,7 @@ class Game {
     this.pendingSeven = false;
     this.pendingSkip = false;
 
+    this.roundsWonByToken[w.token] = (this.roundsWonByToken[w.token] || 0) + 1;
     this.addLog(`${w.name} избавился от всех карт и выигрывает раунд ${this.round}!`);
     if (mult > 1) {
       this.addLog(`Финиш валетом — очки проигравших ×${mult}`);
@@ -478,6 +483,7 @@ class Game {
     if (act.length === 1) {
       this.phase = 'over';
       this.winner = act[0].name;
+      this.winnerToken = act[0].token;
       this.addLog(`${act[0].name} — победитель партии!`);
     } else {
       this.phase = 'roundEnd';

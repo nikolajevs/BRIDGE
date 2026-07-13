@@ -14,15 +14,40 @@
 <div id="conn" class="conn hidden">Переподключение…</div>
 <div id="toast" class="toast hidden"></div>
 
-<!-- ЭКРАН: имя -->
+<!-- ЭКРАН: вход -->
 <section id="screen-name" class="screen center-screen">
   <div class="intro">
     <h1 class="brand">Бридж</h1>
     <p class="tagline">карточная игра за общим столом · 2–6 игроков</p>
-    <div class="row">
-      <input id="name-input" type="text" maxlength="20" placeholder="Ваше имя" autocomplete="off">
-      <button id="name-btn" class="btn primary">За стол</button>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="guest">Гость</button>
+      <button class="auth-tab" data-tab="login">Вход</button>
+      <button class="auth-tab" data-tab="register">Регистрация</button>
     </div>
+
+    <div id="tab-guest" class="auth-pane">
+      <div class="row">
+        <input id="name-input" type="text" maxlength="20" placeholder="Ваше имя" autocomplete="off">
+        <button id="name-btn" class="btn primary">За стол</button>
+      </div>
+      <p class="auth-hint">Быстрый вход без регистрации. Статистика гостей не сохраняется.</p>
+    </div>
+
+    <div id="tab-login" class="auth-pane hidden">
+      <input id="login-user" type="text" maxlength="20" placeholder="Логин" autocomplete="username">
+      <input id="login-pass" type="password" maxlength="72" placeholder="Пароль" autocomplete="current-password">
+      <button id="login-btn" class="btn primary wide-btn">Войти</button>
+    </div>
+
+    <div id="tab-register" class="auth-pane hidden">
+      <input id="reg-user" type="text" maxlength="20" placeholder="Логин (3–20, латиница/цифры)" autocomplete="username">
+      <input id="reg-name" type="text" maxlength="20" placeholder="Отображаемое имя (необязательно)" autocomplete="off">
+      <input id="reg-pass" type="password" maxlength="72" placeholder="Пароль (мин. 6)" autocomplete="new-password">
+      <button id="reg-btn" class="btn primary wide-btn">Создать аккаунт</button>
+    </div>
+
+    <p id="auth-error" class="auth-error hidden"></p>
   </div>
 </section>
 
@@ -30,7 +55,9 @@
 <section id="screen-lobby" class="screen center-screen hidden">
   <div class="panel lobby-panel">
     <h2 class="panel-title">Лобби</h2>
-    <p class="hello-line">Вы — <b id="lobby-name"></b> · <a href="#" id="change-name">сменить имя</a></p>
+    <p class="hello-line">Вы — <b id="lobby-name"></b> <span id="lobby-acc-badge" class="acc-badge hidden">аккаунт</span>
+      · <a href="#" id="cabinet-link">кабинет</a>
+      · <a href="#" id="change-name">сменить</a></p>
 
     <div class="lobby-block">
       <h3>Открытые столы</h3>
@@ -51,6 +78,24 @@
         <input id="join-code-input" type="text" maxlength="4" placeholder="Код, напр. K7XM" style="text-transform:uppercase">
         <button id="join-code-btn" class="btn">Войти</button>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: личный кабинет -->
+<section id="screen-cabinet" class="screen center-screen hidden">
+  <div class="panel cabinet-panel">
+    <h2 class="panel-title">Личный кабинет</h2>
+    <div id="cabinet-stats" class="cabinet-stats"></div>
+
+    <div class="lobby-block">
+      <h3>Топ-100 по победам</h3>
+      <div id="leaderboard" class="leaderboard"></div>
+    </div>
+
+    <div class="row cabinet-actions">
+      <button id="cabinet-back" class="btn">← В лобби</button>
+      <button id="logout-btn" class="btn ghost hidden">Выйти из аккаунта</button>
     </div>
   </div>
 </section>

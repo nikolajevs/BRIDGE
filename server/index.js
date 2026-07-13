@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const WebSocket = require('ws');
 const { Game } = require('./game');
+const db = require('./db');
 
 const PORT = process.env.PORT || 3000;
 const PUB = path.join(__dirname, '..', 'public');
@@ -118,9 +119,32 @@ function onTurnTimeout(t, token) {
   if (t.game.phase === 'over') broadcastTable(t);
 }
 
+function recordGameResult(t) {
+  if (!t.game || t.game.phase !== 'over' || t.recorded) return;
+  t.recorded = true;
+  const g = t.game;
+  const participantIds = [];
+  const roundsWonById = {};
+  let winnerId = null;
+  const seen = new Set();
+  for (const tok of t.seats) {
+    const rec = byToken.get(tok);
+    if (!rec || !rec.userId || seen.has(rec.userId)) continue;
+    seen.add(rec.userId);
+    participantIds.push(rec.userId);
+    const rw = g.roundsWonByToken[tok] || 0;
+    if (rw) roundsWonById[rec.userId] = rw;
+    if (tok === g.winnerToken) winnerId = rec.userId;
+  }
+  if (participantIds.length) {
+    try { db.recordGame(participantIds, winnerId, roundsWonById); } catch (e) { /* не роняем игру */ }
+  }
+}
+
 function broadcastGame(t) {
   if (!t.game) return;
   syncTurnTimer(t);
+  recordGameResult(t);
   const msLeft = t.turnDeadline ? Math.max(0, t.turnDeadline - Date.now()) : null;
   for (const tok of t.seats) {
     const rec = byToken.get(tok);
@@ -194,9 +218,51 @@ wss.on('connection', (ws) => {
   });
 });
 
+function sendAuth(ws, user) {
+  const authToken = db.createSession(user.id);
+  send(ws, {
+    type: 'auth',
+    authToken,
+    login: user.login,
+    name: user.name,
+    stats: db.userStats(user.id),
+  });
+}
+
 function handle(ws, m) {
+  // --- аккаунты (можно вызывать до hello) ---
+  if (m.type === 'register') {
+    const user = db.register(m.login, m.password, m.name);
+    sendAuth(ws, user);
+    return;
+  }
+  if (m.type === 'login') {
+    const user = db.login(m.login, m.password);
+    sendAuth(ws, user);
+    return;
+  }
+  if (m.type === 'logout') {
+    db.deleteSession(m.auth);
+    const tok = clients.get(ws);
+    if (tok) { const r = byToken.get(tok); if (r) r.userId = null; }
+    send(ws, { type: 'loggedOut' });
+    return;
+  }
+  if (m.type === 'getLeaderboard') {
+    send(ws, { type: 'leaderboard', rows: db.leaderboard(100) });
+    return;
+  }
+  if (m.type === 'getProfile') {
+    const user = db.userBySession(m.auth);
+    if (!user) throw new Error('Нужно войти в аккаунт');
+    send(ws, { type: 'profile', stats: db.userStats(user.id) });
+    return;
+  }
+
   if (m.type === 'hello') {
-    const name = String(m.name || '').trim().slice(0, 20);
+    // аккаунт (если пришёл валидный auth-токен) переопределяет имя
+    const account = m.auth ? db.userBySession(m.auth) : null;
+    const name = account ? account.name : String(m.name || '').trim().slice(0, 20);
     if (!name) throw new Error('Введите имя');
     let token = typeof m.token === 'string' && m.token.length >= 16 ? m.token : null;
     if (!token) token = crypto.randomUUID();
@@ -209,7 +275,8 @@ function handle(ws, m) {
       rec.ws = ws;
       rec.name = name;
     }
-    send(ws, { type: 'hello', token, name });
+    rec.userId = account ? account.id : null;
+    send(ws, { type: 'hello', token, name, account: account ? { login: account.login, name: account.name } : null });
 
     const t = tableOf(token);
     if (t) {
@@ -286,6 +353,7 @@ function handle(ws, m) {
       if (t.seats.length < 2) throw new Error('Нужно минимум 2 игрока');
       const seats = t.seats.map(x => ({ token: x, name: byToken.get(x).name }));
       t.game = new Game(seats);
+      t.recorded = false;
       t.lastActive = Date.now();
       broadcastGame(t);
       broadcastLobby();
