@@ -2,6 +2,9 @@
 
 /* Клиент игры «Бридж» */
 
+const BUILD = 'accounts-2026-07-13';
+console.log('Бридж client build:', BUILD);
+
 const $ = (s) => document.querySelector(s);
 
 const store = {
@@ -604,6 +607,8 @@ refreshSoundBtn();
 
 // ---------- старт ----------
 
+const buildTag = $('#build-tag');
+if (buildTag) buildTag.textContent = 'build ' + BUILD;
 if (store.name) $('#name-input').value = store.name;
 show('name');
 connect();

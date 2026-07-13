@@ -425,3 +425,5 @@ input::placeholder { color: #6e5b49; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+.build-tag { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: #6e5b49; }
