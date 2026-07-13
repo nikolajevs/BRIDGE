@@ -51,19 +51,29 @@ ok('другая масть и достоинство — нельзя', () => {
   assert(!g.canPlayCard({ r: 'K', s: '♥' }));
 });
 
-ok('9 — обычная карта: другая масть и достоинство — нельзя', () => {
+ok('9 универсальная — кладётся на любую карту', () => {
   const g = freshGame();
   force(g, { top: { r: 'A', s: '♣' } });
-  assert(!g.canPlayCard({ r: '9', s: '♦' }));           // 9♦ на туза треф — нельзя
+  assert(g.canPlayCard({ r: '9', s: '♦' }));            // 9 другой масти на туза — можно
 });
 
-ok('9 кроется той же мастью (любого достоинства) и 9 на 9', () => {
+ok('на 9 можно ответить девяткой (9 на 9)', () => {
   const g = freshGame();
   force(g, { top: { r: '9', s: '♣' } });
-  assert(g.canPlayCard({ r: '6', s: '♣' }));            // та же масть, младше
-  assert(g.canPlayCard({ r: 'K', s: '♣' }));            // та же масть, старше
   assert(g.canPlayCard({ r: '9', s: '♥' }));            // 9 на 9 другой масти
-  assert(!g.canPlayCard({ r: '10', s: '♦' }));          // другая масть, не 9 — нельзя
+  assert(g.canPlayCard({ r: '6', s: '♣' }));            // и та же масть, любое достоинство
+});
+
+ok('за один ход кладётся только одна девятка', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const p = g.players[who];
+  p.hand = [{ r: '9', s: '♦', id: '9♦' }, { r: '9', s: '♥', id: '9♥' }];
+  g.playCard(p.token, '9♦');                            // положили одну девятку
+  assert.notStrictEqual(g.turn, who, 'ход должен уйти сопернику — вторую 9 не кинуть');
 });
 
 ok('валет кладётся на что угодно', () => {
