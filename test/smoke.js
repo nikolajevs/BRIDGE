@@ -167,6 +167,24 @@ ok('4 короля подряд — мгновенная победа', () => {
   assert.strictEqual(g.winner, p.name);
 });
 
+ok('очки: 6/7/8/9 — 0, туз — 15, прочие — 10', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].hand = [
+    { r: '6', s: '♥', id: '6♥' }, { r: '7', s: '♥', id: '7♥' },
+    { r: '8', s: '♥', id: '8♥' }, { r: '9', s: '♥', id: '9♥' }, // по 0
+    { r: 'K', s: '♣', id: 'K♣' },                               // 10
+    { r: 'A', s: '♦', id: 'A♦' },                               // 15
+  ];
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.players[other].score, 25, '0+0+0+0+10+15 = 25');
+});
+
 ok('ровно 125 — обнуление', () => {
   const g = freshGame(2);
   force(g, { top: { r: '7', s: '♠' } });

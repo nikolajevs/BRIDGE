@@ -238,6 +238,17 @@ input::placeholder { color: #6e5b49; }
   transition: box-shadow .2s ease, border-color .2s ease;
 }
 .opp.turn { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 24px rgba(217,164,65,.35); }
+.opp.one-card {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger), 0 0 22px rgba(196,86,63,.5);
+  animation: onecard-pulse 1.1s ease-in-out infinite;
+}
+.opp.one-card .opp-name { color: #f0a08b; }
+@keyframes onecard-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--danger), 0 0 14px rgba(196,86,63,.35); }
+  50% { box-shadow: 0 0 0 1px var(--danger), 0 0 26px rgba(196,86,63,.7); }
+}
+.me-info.one-card { color: #f0a08b; font-weight: 700; }
 .opp.out { opacity: .45; }
 .opp.offline .opp-name::after { content: ' ⌁'; color: var(--danger); }
 .opp-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; margin: 0 auto; }

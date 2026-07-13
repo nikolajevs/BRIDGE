@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'accounts-2026-07-13';
+const BUILD = 'scoring-whip-2026-07-13';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
@@ -100,6 +100,7 @@ function dispatch(m) {
       lastGame = m;
       updateTurnDeadline(m);
       maybePlayTurnSound(m);
+      maybePlayWhip(m);
       renderGame(m);
       show('game');
       break;
@@ -219,6 +220,7 @@ function renderGame(g) {
       i === g.turnIdx ? 'turn' : '',
       p.eliminated ? 'out' : '',
       p.connected ? '' : 'offline',
+      (p.count === 1 && !p.eliminated) ? 'one-card' : '',
     ].join(' ');
     const n = Math.min(p.count, 8);
     let minis = '';
@@ -296,9 +298,11 @@ function renderGame(g) {
 
   // моя строка
   const me = g.players[g.youIdx];
-  $('#me-info').textContent = me
-    ? `${me.name} · ${me.score} очк.${g.youIdx === g.dealerIdx ? ' · вы раздаёте' : ''}${me.eliminated ? ' · вы выбыли' : ''}`
+  const meInfo = $('#me-info');
+  meInfo.textContent = me
+    ? `${me.name} · ${me.score} очк.${g.youIdx === g.dealerIdx ? ' · вы раздаёте' : ''}${me.eliminated ? ' · вы выбыли' : ''}${me && me.count === 1 && !me.eliminated ? ' · последняя карта!' : ''}`
     : '';
+  meInfo.classList.toggle('one-card', !!(me && me.count === 1 && !me.eliminated));
 
   renderLog(g);
   renderModals(g);
@@ -591,6 +595,35 @@ function maybePlayTurnSound(g) {
   const isMyTurn = g.phase === 'playing' && g.youIdx === g.turnIdx;
   if (isMyTurn && !wasMyTurn) playTurnChime();
   wasMyTurn = isMyTurn;
+}
+
+// хлыст на даму пик — символ наказания (следующий берёт 5 и пропускает)
+let lastTopId = null;
+function playWhip() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const ctx = audioCtx, now = ctx.currentTime, dur = 0.28;
+  // шумовой свист-щелчок с быстрым подъёмом и спадом частоты
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+  bp.frequency.setValueAtTime(500, now);
+  bp.frequency.exponentialRampToValueAtTime(5500, now + 0.13); // свист вверх
+  bp.frequency.exponentialRampToValueAtTime(900, now + dur);   // и вниз — «щёлк»
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.55, now + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+  src.start(now); src.stop(now + dur);
+}
+function maybePlayWhip(g) {
+  const tid = g.top ? g.top.id : null;
+  if (g.phase === 'playing' && tid === 'Q♠' && lastTopId !== 'Q♠') playWhip();
+  lastTopId = tid;
 }
 
 function refreshSoundBtn() {
