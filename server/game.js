@@ -16,7 +16,8 @@
  *  - 8: следующий берёт 2 и пропускает ход, либо кидает свою 8 (штраф растёт по +2);
  *  - 9: универсальная — кладётся на любую карту (кроме цепочки восьмёрок), 9 на 9 тоже; за ход одна;
  *  - Валет: универсальный + заказ масти; завершение раунда валетом множит очки
- *    проигравших (один валет — ×2, валет на валет — ×3, и так далее);
+ *    проигравших (свой один валет — ×2). Можно скинуть все свои валеты за раз,
+ *    если это последние карты: N валетов → ×(N+1). Валеты разных игроков не суммируются;
  *  - Дама пик: следующий берёт 5 и пропускает ход;
  *  - Король: 4 короля подряд — последний положивший выигрывает всю партию;
  *  - Туз: следующий пропускает ход.
@@ -237,8 +238,37 @@ class Game {
     if (card.r === 'Q' && card.s === '♠') this.pendingQueen = true;
     if (card.r === 'A') this.pendingSkip = true;
 
-    if (p.hand.length === 0) { this.finishRound(i); return; }
+    if (p.hand.length === 0) {
+      // финиш валетом (одной картой) — очки проигравших ×2
+      this.finishRound(i, card.r === 'J' ? 2 : 1);
+      return;
+    }
     this.advanceTurn();
+  }
+
+  // Скинуть все свои валеты за один ход — только если это последние карты.
+  // Множитель очков проигравших = число валетов + 1 (2 валета → ×3, и т.д.).
+  dumpJacks(token, chosenSuit) {
+    const i = this.idxOf(token);
+    this.assertTurn(i);
+    const p = this.players[i];
+    if (this.pendingDraw > 0) throw new Error('Идёт цепочка восьмёрок — ответьте восьмёркой');
+    if (this.mustCoverSix) throw new Error('Сначала накройте шестёрку');
+    if (this.drawnCardId) throw new Error('Вы уже брали карту — сыграйте её или пас');
+    const jacks = p.hand.filter(c => c.r === 'J');
+    if (jacks.length < 2) throw new Error('Сбросить пачкой можно только два и более валета');
+    if (jacks.length !== p.hand.length) {
+      throw new Error('Скинуть все валеты можно, только если это ваши последние карты');
+    }
+    if (!SUITS.includes(chosenSuit)) throw new Error('Выберите масть для валета');
+
+    for (const c of jacks) this.discard.push(c);
+    p.hand = [];
+    this.kingStreak = 0;
+    this.jackSuit = chosenSuit;
+    this.drawnCardId = null;
+    this.addLog(`${p.name} скидывает ${jacks.length} валета и заказывает ${chosenSuit}`);
+    this.finishRound(i, jacks.length + 1);
   }
 
   drawCard(token) {
@@ -349,7 +379,7 @@ class Game {
 
   // ---------- конец раунда и подсчёт ----------
 
-  finishRound(winnerIdx) {
+  finishRound(winnerIdx, mult = 1) {
     const w = this.players[winnerIdx];
 
     // висящие штрафы применяются к следующему игроку до подсчёта очков
@@ -368,17 +398,9 @@ class Game {
     this.pendingSeven = false;
     this.pendingSkip = false;
 
-    // множитель за завершение раунда валетом: подряд идущие валеты сверху сброса
-    // (валет — ×2, валет на валет — ×3, и так далее)
-    let jackRun = 0;
-    for (let k = this.discard.length - 1; k >= 0; k--) {
-      if (this.discard[k].r === 'J') jackRun++; else break;
-    }
-    const mult = jackRun > 0 ? jackRun + 1 : 1;
-
     this.addLog(`${w.name} избавился от всех карт и выигрывает раунд ${this.round}!`);
     if (mult > 1) {
-      this.addLog(`Финиш ${jackRun}× валетом — очки проигравших ×${mult}`);
+      this.addLog(`Финиш валетом — очки проигравших ×${mult}`);
     }
 
     const results = [];
@@ -453,6 +475,9 @@ class Game {
       drew: myTurn && !!this.drawnCardId,
       canDraw: myTurn && this.pendingDraw === 0 && (this.mustCoverSix || !this.drawnCardId),
       canPass: myTurn && !this.mustCoverSix && !!this.drawnCardId,
+      canDumpJacks: myTurn && this.pendingDraw === 0 && !this.mustCoverSix
+        && !this.drawnCardId && me && me.hand.length >= 2
+        && me.hand.every(c => c.r === 'J'),
       log: this.log.slice(-60),
       roundResults: this.roundResults,
       winner: this.winner,

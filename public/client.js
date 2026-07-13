@@ -238,6 +238,14 @@ function renderGame(g) {
   // кнопки
   $('#draw-btn').disabled = !g.canDraw;
   $('#pass-btn').disabled = !g.canPass;
+  const dumpBtn = $('#dump-jacks-btn');
+  if (g.canDumpJacks) {
+    const n = g.hand.length;
+    dumpBtn.textContent = `Скинуть ${n} валета (×${n + 1})`;
+    dumpBtn.classList.remove('hidden');
+  } else {
+    dumpBtn.classList.add('hidden');
+  }
 
   // моя строка
   const me = g.players[g.youIdx];
@@ -298,19 +306,29 @@ function renderModals(g) {
 // ---------- выбор масти ----------
 
 let suitCardId = null;
+let suitMode = 'play';           // 'play' — обычный валет, 'dump' — скинуть все валеты
 function openSuitModal(cardId) {
+  suitMode = 'play';
   suitCardId = cardId;
+  $('#suit-modal').classList.remove('hidden');
+}
+function openSuitModalDump() {
+  suitMode = 'dump';
+  suitCardId = null;
   $('#suit-modal').classList.remove('hidden');
 }
 document.querySelectorAll('.suit-btn').forEach(b => {
   b.onclick = () => {
     $('#suit-modal').classList.add('hidden');
-    if (suitCardId) sendMsg({ type: 'playCard', cardId: suitCardId, suit: b.dataset.suit });
+    if (suitMode === 'dump') sendMsg({ type: 'dumpJacks', suit: b.dataset.suit });
+    else if (suitCardId) sendMsg({ type: 'playCard', cardId: suitCardId, suit: b.dataset.suit });
     suitCardId = null;
+    suitMode = 'play';
   };
 });
 $('#suit-cancel').onclick = () => {
   suitCardId = null;
+  suitMode = 'play';
   $('#suit-modal').classList.add('hidden');
 };
 
@@ -351,6 +369,7 @@ $('#g-leave').onclick = () => {
 };
 
 $('#draw-btn').onclick = () => sendMsg({ type: 'drawCard' });
+$('#dump-jacks-btn').onclick = () => openSuitModalDump();
 $('#pass-btn').onclick = () => sendMsg({ type: 'endTurn' });
 $('#next-round-btn').onclick = () => sendMsg({ type: 'nextRound' });
 $('#rematch-btn').onclick = () => sendMsg({ type: 'startGame' });

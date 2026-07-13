@@ -269,6 +269,16 @@ function handle(ws, m) {
       break;
     }
 
+    case 'dumpJacks': {
+      const t = tableOf(token);
+      if (!t || !t.game) throw new Error('Игра не идёт');
+      t.game.dumpJacks(token, m.suit);
+      t.lastActive = Date.now();
+      broadcastGame(t);
+      if (t.game.phase === 'over') broadcastTable(t);
+      break;
+    }
+
     case 'drawCard': {
       const t = tableOf(token);
       if (!t || !t.game) throw new Error('Игра не идёт');

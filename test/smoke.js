@@ -186,17 +186,43 @@ ok('финиш одним валетом — очки проигравших ×2
   assert.strictEqual(g.players[other].score, 50, 'должно быть 25×2');
 });
 
-ok('финиш валет-на-валет — очки проигравших ×3', () => {
+ok('чужой валет снизу не считается — только свой ×2', () => {
   const g = freshGame(2);
-  force(g, { top: { r: 'J', s: '♣' } });     // сверху уже валет
+  force(g, { top: { r: 'J', s: '♣' } });     // валет соперника уже лежит
   g.mustCoverSix = false;
   g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
   const who = g.turn;
   const other = g.nextActiveIdx(who);
-  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }];   // валет на валет
+  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }];   // свой один валет
   g.players[other].hand = [{ r: '10', s: '♠', id: '10♠' }]; // 10
   g.playCard(g.players[who].token, 'J♥', '♠');
+  assert.strictEqual(g.players[other].score, 20, '10×2, чужой валет не суммируется');
+});
+
+ok('дамп двух валетов последними картами — ×3', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }, { r: 'J', s: '♠', id: 'J♠' }];
+  g.players[other].hand = [{ r: '10', s: '♣', id: '10♣' }]; // 10
+  g.dumpJacks(g.players[who].token, '♣');
+  assert.notStrictEqual(g.phase, 'playing', 'раунд должен завершиться');
   assert.strictEqual(g.players[other].score, 30, 'должно быть 10×3');
+});
+
+ok('дамп валетов запрещён, если есть не-валет', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }, { r: '7', s: '♦', id: '7♦' }];
+  let threw = false;
+  try { g.dumpJacks(g.players[who].token, '♠'); } catch { threw = true; }
+  assert(threw, 'дамп должен быть запрещён при наличии не-валета');
 });
 
 ok('финиш не валетом — множителя нет', () => {
