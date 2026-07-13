@@ -82,3 +82,5 @@ test/e2e.js       сквозной тест по WebSocket
 Любая машина с Node.js ≥ 18: `npm install && PORT=80 node server/index.js`.
 За обратным прокси (nginx/caddy) нужно проксировать и WebSocket-апгрейд.
 Состояние хранится в памяти процесса — перезапуск сервера сбрасывает столы.
+
+Автоматический деплой на VPS при каждом push в `main` — см. **[DEPLOY.md](DEPLOY.md)**.
