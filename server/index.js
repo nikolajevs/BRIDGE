@@ -29,7 +29,18 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(PUB)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    // ETag по содержимому + no-cache: браузер обязан сверяться с сервером,
+    // поэтому после деплоя всегда подтягивается свежая версия (при совпадении — 304).
+    const etag = '"' + crypto.createHash('sha1').update(data).digest('hex').slice(0, 16) + '"';
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { 'ETag': etag, 'Cache-Control': 'no-cache' });
+      return res.end();
+    }
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+      'Cache-Control': 'no-cache',
+      'ETag': etag,
+    });
     res.end(data);
   });
 });
