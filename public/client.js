@@ -67,6 +67,7 @@ function dispatch(m) {
     case 'game':
       lastGame = m;
       updateTurnDeadline(m);
+      maybePlayTurnSound(m);
       renderGame(m);
       show('game');
       break;
@@ -413,6 +414,61 @@ function tickTimer() {
   el.classList.toggle('mine', mine);
 }
 setInterval(tickTimer, 250);
+
+// ---------- звук наступления хода ----------
+
+let audioCtx = null;
+let soundOn = localStorage.getItem('g125_sound') !== 'off';
+let wasMyTurn = false;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) { try { audioCtx = new AC(); } catch { audioCtx = null; } }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+// разблокировать звук на первом действии пользователя (политика браузеров)
+window.addEventListener('pointerdown', ensureAudio, { once: true });
+window.addEventListener('keydown', ensureAudio, { once: true });
+
+function playTurnChime() {
+  if (!soundOn) return;
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const notes = [[880, 0], [1174.66, 0.12]]; // A5 → D6, короткий приятный сигнал
+  for (const [freq, t] of notes) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const s = now + t;
+    gain.gain.setValueAtTime(0.0001, s);
+    gain.gain.exponentialRampToValueAtTime(0.22, s + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, s + 0.25);
+    osc.start(s); osc.stop(s + 0.28);
+  }
+}
+
+function maybePlayTurnSound(g) {
+  const isMyTurn = g.phase === 'playing' && g.youIdx === g.turnIdx;
+  if (isMyTurn && !wasMyTurn) playTurnChime();
+  wasMyTurn = isMyTurn;
+}
+
+function refreshSoundBtn() {
+  const b = $('#g-sound');
+  if (b) { b.textContent = soundOn ? '🔔' : '🔕'; b.title = soundOn ? 'Звук хода: вкл' : 'Звук хода: выкл'; }
+}
+$('#g-sound').onclick = () => {
+  soundOn = !soundOn;
+  localStorage.setItem('g125_sound', soundOn ? 'on' : 'off');
+  refreshSoundBtn();
+  if (soundOn) playTurnChime(); // короткий предпросмотр
+};
+refreshSoundBtn();
 
 // ---------- старт ----------
 
