@@ -238,6 +238,29 @@ ok('финиш не валетом — множителя нет', () => {
   assert.strictEqual(g.players[other].score, 10, 'без множителя — 10');
 });
 
+ok('автоход: играет карту и передаёт ход', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  g.players[who].hand = [{ r: '8', s: '♣', id: '8♣' }, { r: '10', s: '♠', id: '10♠' }];
+  g.autoMove(who);
+  assert(g.turn !== who || g.phase !== 'playing', 'ход должен уйти дальше');
+});
+
+ok('автоход: накрывает шестёрку', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '6', s: '♣' } });
+  g.mustCoverSix = true;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  g.players[who].hand = [{ r: '10', s: '♣', id: '10♣' }, { r: 'A', s: '♠', id: 'A♠' }];
+  g.autoMove(who);
+  assert(!g.mustCoverSix, 'шестёрка должна быть накрыта');
+  assert(g.turn !== who || g.phase !== 'playing');
+});
+
 // ---------- случайные партии ----------
 
 console.log('\nСлучайные партии (инварианты):');

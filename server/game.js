@@ -314,6 +314,63 @@ class Game {
     this.advanceTurn();
   }
 
+  // масть для авто-валета: та, которой у игрока больше всего (иначе пики)
+  _autoSuit(p) {
+    const cnt = { '♠': 0, '♣': 0, '♥': 0, '♦': 0 };
+    for (const c of p.hand) if (c.r !== 'J') cnt[c.s]++;
+    let best = '♠';
+    for (const s of SUITS) if (cnt[s] > cnt[best]) best = s;
+    return best;
+  }
+
+  // Авто-ход по истечении времени: полностью доигрывает ход текущего игрока,
+  // пока ход не перейдёт дальше или не закончится раунд/партия.
+  autoMove(i) {
+    if (this.phase !== 'playing' || this.turn !== i) return;
+    const p = this.players[i];
+    this.addLog(`${p.name}: время вышло — авто-ход`);
+    let guard = 0;
+    while (this.phase === 'playing' && this.turn === i && guard++ < 80) {
+      // обязательная восьмёрка
+      if (this.pendingDraw > 0) {
+        const e = p.hand.find(c => c.r === '8');
+        if (e) { this.playCard(p.token, e.id); continue; }
+        break; // до сюда не дойдёт: ход отдают только тому, у кого есть восьмёрка
+      }
+      // накрыть шестёрку
+      if (this.mustCoverSix) {
+        const cover = p.hand.find(c => c.r !== '6' && this.canPlayCard(c))
+          || p.hand.find(c => this.canPlayCard(c));
+        if (cover) {
+          this.playCard(p.token, cover.id, cover.r === 'J' ? this._autoSuit(p) : undefined);
+        } else {
+          this.drawCard(p.token); // тянем, пока не сможем накрыть (или прикуп пуст)
+        }
+        continue;
+      }
+      // уже брали карту в этот ход — сыграть её или пас
+      if (this.drawnCardId) {
+        const dc = this.drawnCardId !== '__none__' && p.hand.find(c => c.id === this.drawnCardId);
+        if (dc && this.canPlayCard(dc)) {
+          this.playCard(p.token, dc.id, dc.r === 'J' ? this._autoSuit(p) : undefined);
+        } else {
+          this.endTurn(p.token);
+        }
+        continue;
+      }
+      // обычный ход: играем «спокойную» карту, если есть, иначе тянем
+      const playable = p.hand.filter(c => this.canPlayCard(c));
+      if (playable.length) {
+        const plain = playable.find(c => !['6', '7', '8', 'A', 'K', 'J'].includes(c.r)
+          && !(c.r === 'Q' && c.s === '♠'));
+        const pick = plain || playable[0];
+        this.playCard(p.token, pick.id, pick.r === 'J' ? this._autoSuit(p) : undefined);
+      } else {
+        this.drawCard(p.token);
+      }
+    }
+  }
+
   resign(token) {
     const i = this.idxOf(token);
     const p = this.players[i];

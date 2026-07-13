@@ -90,8 +90,38 @@ function broadcastTable(t) {
   }
 }
 
+const TURN_MS = 30000; // лимит времени на ход
+
+// (пере)запускает 30-секундный таймер, когда ход переходит новому игроку.
+// Пока ходит тот же игрок (добор, накрытие шестёрки) — таймер не сбрасывается.
+function syncTurnTimer(t) {
+  if (!t.game || t.game.phase !== 'playing') {
+    if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
+    t.turnOwner = null;
+    t.turnDeadline = null;
+    return;
+  }
+  const token = t.game.players[t.game.turn].token;
+  if (t.turnOwner === token && t.turnTimer) return; // тот же ход — таймер уже идёт
+  t.turnOwner = token;
+  t.turnDeadline = Date.now() + TURN_MS;
+  if (t.turnTimer) clearTimeout(t.turnTimer);
+  t.turnTimer = setTimeout(() => onTurnTimeout(t, token), TURN_MS);
+}
+
+function onTurnTimeout(t, token) {
+  if (!t.game || t.game.phase !== 'playing') return;
+  if (t.game.players[t.game.turn].token !== token) return; // ход уже ушёл
+  try { t.game.autoMove(t.game.turn); } catch (e) { /* игнорируем */ }
+  t.lastActive = Date.now();
+  broadcastGame(t);
+  if (t.game.phase === 'over') broadcastTable(t);
+}
+
 function broadcastGame(t) {
   if (!t.game) return;
+  syncTurnTimer(t);
+  const msLeft = t.turnDeadline ? Math.max(0, t.turnDeadline - Date.now()) : null;
   for (const tok of t.seats) {
     const rec = byToken.get(tok);
     if (!rec || !rec.ws) continue;
@@ -99,6 +129,8 @@ function broadcastGame(t) {
     st.tableId = t.id;
     st.tableName = t.name;
     st.youAreHost = t.host === tok;
+    st.turnMsLeft = msLeft;
+    st.turnLimitMs = TURN_MS;
     send(rec.ws, st);
   }
 }
@@ -122,6 +154,7 @@ function removeSeat(t, token) {
   const rec = byToken.get(token);
   if (rec) rec.tableId = null;
   if (t.seats.length === 0) {
+    if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
     tables.delete(t.id);
   } else if (t.host === token) {
     t.host = t.seats[0];
@@ -330,6 +363,7 @@ setInterval(() => {
         const r = byToken.get(tok);
         if (r) r.tableId = null;
       }
+      if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
       tables.delete(t.id);
     }
   }

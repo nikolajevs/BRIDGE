@@ -66,6 +66,7 @@ function dispatch(m) {
       break;
     case 'game':
       lastGame = m;
+      updateTurnDeadline(m);
       renderGame(m);
       show('game');
       break;
@@ -386,6 +387,32 @@ $('#chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendC
 
 $('#g-log-toggle').onclick = () => $('#side').classList.toggle('open');
 $('#side-close').onclick = () => $('#side').classList.remove('open');
+
+// ---------- таймер хода ----------
+
+let turnDeadline = null;   // локальный дедлайн (Date.now-шкала) или null
+function updateTurnDeadline(g) {
+  if (g.phase === 'playing' && typeof g.turnMsLeft === 'number') {
+    turnDeadline = Date.now() + g.turnMsLeft;
+  } else {
+    turnDeadline = null;
+  }
+}
+function tickTimer() {
+  const el = $('#g-timer');
+  if (!el) return;
+  if (turnDeadline === null || !lastGame || lastGame.phase !== 'playing') {
+    el.classList.add('hidden');
+    return;
+  }
+  const left = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
+  const mine = lastGame.youIdx === lastGame.turnIdx;
+  el.textContent = `⏱ ${left}`;
+  el.classList.remove('hidden');
+  el.classList.toggle('low', left <= 10);
+  el.classList.toggle('mine', mine);
+}
+setInterval(tickTimer, 250);
 
 // ---------- старт ----------
 
