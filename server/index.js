@@ -203,6 +203,7 @@ wss.on('connection', (ws) => {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
     try { handle(ws, m); } catch (e) {
+      console.error(`[handle:${m && m.type}]`, e && e.stack ? e.stack : e);
       send(ws, { type: 'error', msg: e.message || 'Ошибка' });
     }
   });
