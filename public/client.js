@@ -1,6 +1,6 @@
 'use strict';
 
-/* Клиент игры «125» */
+/* Клиент игры «Бридж» */
 
 const $ = (s) => document.querySelector(s);
 

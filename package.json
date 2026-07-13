@@ -1,7 +1,7 @@
 {
   "name": "game-125",
   "version": "0.1.0",
-  "description": "Онлайн карточная игра «125» — 2–6 игроков, WebSocket",
+  "description": "Онлайн карточная игра «Бридж» — 2–6 игроков, WebSocket",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

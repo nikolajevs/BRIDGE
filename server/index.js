@@ -326,5 +326,5 @@ setInterval(() => {
 }, 60 * 1000);
 
 server.listen(PORT, () => {
-  console.log(`«125» запущена: http://localhost:${PORT}`);
+  console.log(`«Бридж» запущена: http://localhost:${PORT}`);
 });
