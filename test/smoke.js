@@ -173,6 +173,45 @@ ok('ровно 125 — обнуление', () => {
   assert(!g.players[other].eliminated);
 });
 
+ok('финиш одним валетом — очки проигравших ×2', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });     // сверху не валет
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }];   // победная карта — валет
+  g.players[other].hand = [{ r: '10', s: '♣', id: '10♣' }, { r: 'A', s: '♣', id: 'A♣' }]; // 10+15=25
+  g.playCard(g.players[who].token, 'J♥', '♣');
+  assert.strictEqual(g.players[other].score, 50, 'должно быть 25×2');
+});
+
+ok('финиш валет-на-валет — очки проигравших ×3', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: 'J', s: '♣' } });     // сверху уже валет
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }];   // валет на валет
+  g.players[other].hand = [{ r: '10', s: '♠', id: '10♠' }]; // 10
+  g.playCard(g.players[who].token, 'J♥', '♠');
+  assert.strictEqual(g.players[other].score, 30, 'должно быть 10×3');
+});
+
+ok('финиш не валетом — множителя нет', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].hand = [{ r: 'K', s: '♣', id: 'K♣' }]; // 10
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.players[other].score, 10, 'без множителя — 10');
+});
+
 // ---------- случайные партии ----------
 
 console.log('\nСлучайные партии (инварианты):');
