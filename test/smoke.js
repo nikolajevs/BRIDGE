@@ -238,15 +238,31 @@ ok('финиш не валетом — множителя нет', () => {
   assert.strictEqual(g.players[other].score, 10, 'без множителя — 10');
 });
 
-ok('автоход: играет карту и передаёт ход', () => {
+ok('автоход: берёт карту и пасует, не играя из руки', () => {
   const g = freshGame(2);
   force(g, { top: { r: '7', s: '♠' } });
   g.mustCoverSix = false;
   g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
   const who = g.turn;
-  g.players[who].hand = [{ r: '8', s: '♣', id: '8♣' }, { r: '10', s: '♠', id: '10♠' }];
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }]; // играбельна, но играть не должны
   g.autoMove(who);
-  assert(g.turn !== who || g.phase !== 'playing', 'ход должен уйти дальше');
+  assert(g.turn === other || g.phase !== 'playing', 'ход должен уйти дальше');
+  assert(g.players[who].hand.some(c => c.id === '10♠'), 'карта не должна быть сыграна');
+});
+
+ok('автоход в цепочке восьмёрок: берёт штраф и пропускает', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '8', s: '♠' }, pendingDraw: 2 });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const before = g.players[who].hand.length;
+  g.players[who].hand.push({ r: '8', s: '♦', id: '8♦' }); // есть восьмёрка, но время вышло
+  g.autoMove(who);
+  assert.strictEqual(g.pendingDraw, 0, 'штраф погашен');
+  assert.strictEqual(g.players[who].hand.length, before + 1 + 2, 'взял 2 штрафные');
+  assert(g.turn !== who || g.phase !== 'playing', 'ход пропущен');
 });
 
 ok('автоход: накрывает шестёрку', () => {
