@@ -23,6 +23,8 @@
  *  - Туз: следующий пропускает ход.
  *
  * Очки за карты на руках в конце раунда: 6/7/8/9 — 0, туз — 15, остальные — 10.
+ * Пока счёт игрока 0 (не открыт), раунд записывается только при 30+ очков;
+ * после открытия счёта считаются все раунды. Обнуление на 125 закрывает счёт снова.
  * Ровно 125 — обнуление. Больше 125 — выбывание. Играем до последнего.
  */
 
@@ -468,8 +470,13 @@ class Game {
     for (const p of this.activePlayers()) {
       const raw = p.hand.reduce((s, c) => s + points(c), 0);
       const pts = raw * mult;
-      p.score += pts;
+      // счёт «открыт», если у игрока уже есть очки; пока 0 — записываем только 30+
+      const opened = p.score > 0;
+      const counts = opened || pts >= 30;
+      p.score += counts ? pts : 0;
+
       let note = (mult > 1 && p !== w && raw > 0) ? `×${mult} (валет)` : '';
+      if (!counts && pts > 0) note = `${pts}: счёт не открыт (нужно ≥30)`;
       if (p.score === 125) {
         p.score = 0;
         note = 'ровно 125 — обнуление!';
@@ -478,6 +485,8 @@ class Game {
         p.eliminated = true;
         note = 'больше 125 — выбывает';
         this.addLog(`${p.name} набирает ${p.score} и выбывает`);
+      } else if (!counts && pts > 0) {
+        this.addLog(`${p.name}: ${pts} очк. — счёт ещё не открыт (нужно ≥30)`);
       }
       results.push({ name: p.name, pts, score: p.score, note, winner: p === w });
     }

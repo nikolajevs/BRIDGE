@@ -179,10 +179,10 @@ ok('очки: 6/7/8/9 — 0, туз — 15, прочие — 10', () => {
     { r: '6', s: '♥', id: '6♥' }, { r: '7', s: '♥', id: '7♥' },
     { r: '8', s: '♥', id: '8♥' }, { r: '9', s: '♥', id: '9♥' }, // по 0
     { r: 'K', s: '♣', id: 'K♣' },                               // 10
-    { r: 'A', s: '♦', id: 'A♦' },                               // 15
+    { r: 'A', s: '♦', id: 'A♦' }, { r: 'A', s: '♥', id: 'A♥' }, // 15+15
   ];
   g.playCard(g.players[who].token, '10♠');
-  assert.strictEqual(g.players[other].score, 25, '0+0+0+0+10+15 = 25');
+  assert.strictEqual(g.players[other].score, 40, '0+0+0+0+10+15+15 = 40 (≥30, открывает счёт)');
 });
 
 ok('ровно 125 — обнуление', () => {
@@ -193,12 +193,52 @@ ok('ровно 125 — обнуление', () => {
   const who = g.turn;
   const other = g.nextActiveIdx(who);
   g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
-  // у соперника на руках 10+15=25, счёт 100 → станет ровно 125 → 0
+  // счёт уже открыт (100), на руках 10+15=25 → станет ровно 125 → 0
   g.players[other].score = 100;
   g.players[other].hand = [{ r: '10', s: '♥', id: '10♥' }, { r: 'A', s: '♥', id: 'A♥' }];
   g.playCard(g.players[who].token, '10♠');
   assert.strictEqual(g.players[other].score, 0);
   assert(!g.players[other].eliminated);
+});
+
+ok('порог 30: раунд <30 не открывает счёт', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].hand = [{ r: '10', s: '♥', id: '10♥' }, { r: 'K', s: '♥', id: 'K♥' }]; // 20 < 30
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.players[other].score, 0, 'меньше 30 — счёт не открыт');
+});
+
+ok('порог 30: раунд 30+ открывает счёт', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].hand = [{ r: 'A', s: '♥', id: 'A♥' }, { r: 'A', s: '♦', id: 'A♦' }]; // 30
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.players[other].score, 30, '30 — счёт открыт');
+});
+
+ok('порог 30: после открытия считаются и раунды <30', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].score = 40; // счёт уже открыт
+  g.players[other].hand = [{ r: '10', s: '♥', id: '10♥' }]; // 10 < 30, но открыт
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.players[other].score, 50, 'открытый счёт: +10');
 });
 
 ok('финиш одним валетом — очки проигравших ×2', () => {
@@ -222,9 +262,10 @@ ok('чужой валет снизу не считается — только с
   const who = g.turn;
   const other = g.nextActiveIdx(who);
   g.players[who].hand = [{ r: 'J', s: '♥', id: 'J♥' }];   // свой один валет
+  g.players[other].score = 50;                            // счёт уже открыт
   g.players[other].hand = [{ r: '10', s: '♠', id: '10♠' }]; // 10
   g.playCard(g.players[who].token, 'J♥', '♠');
-  assert.strictEqual(g.players[other].score, 20, '10×2, чужой валет не суммируется');
+  assert.strictEqual(g.players[other].score, 70, '50 + 10×2 = 70 (чужой валет не суммируется; ×3 дало бы 80)');
 });
 
 ok('дамп двух валетов последними картами — ×3', () => {
@@ -261,9 +302,9 @@ ok('финиш не валетом — множителя нет', () => {
   const who = g.turn;
   const other = g.nextActiveIdx(who);
   g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
-  g.players[other].hand = [{ r: 'K', s: '♣', id: 'K♣' }]; // 10
+  g.players[other].hand = [{ r: 'A', s: '♥', id: 'A♥' }, { r: 'A', s: '♦', id: 'A♦' }, { r: 'K', s: '♣', id: 'K♣' }]; // 40
   g.playCard(g.players[who].token, '10♠');
-  assert.strictEqual(g.players[other].score, 10, 'без множителя — 10');
+  assert.strictEqual(g.players[other].score, 40, 'без множителя — 40 (15+15+10)');
 });
 
 ok('автоход: берёт карту и пасует, не играя из руки', () => {
