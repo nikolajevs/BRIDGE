@@ -13,7 +13,7 @@ class MainActivity : Activity() {
     // ─────────────────────────────────────────────────────────────────────
     //  АДРЕС СЕРВЕРА. Замени на свой (IP или домен с портом).
     //  Например: "http://203.0.113.10:10067"  или  "https://bridge.example.com"
-    private val gameUrl = "http://ЗАМЕНИ_НА_СВОЙ_АДРЕС:10067"
+    private val gameUrl = "http://dvinsk.lat"
     // ─────────────────────────────────────────────────────────────────────
 
     private lateinit var webView: WebView
