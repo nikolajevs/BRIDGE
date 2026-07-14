@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'admin-2026-07-13';
+const BUILD = 'results-lock-2026-07-13';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
@@ -103,6 +103,7 @@ function dispatch(m) {
     case 'game':
       lastGame = m;
       updateTurnDeadline(m);
+      armResultsLock(m);
       maybePlayTurnSound(m);
       maybePlayWhip(m);
       renderGame(m);
@@ -333,6 +334,35 @@ function resultsTable(rows) {
     </tr>`).join('');
 }
 
+const RESULTS_LOCK_MS = 7000;
+let resultsLockUntil = 0;
+let resultsLockPhase = null;
+
+function armResultsLock(g) {
+  // взводим блокировку один раз при появлении таблицы (переход в roundEnd/over)
+  if ((g.phase === 'roundEnd' || g.phase === 'over') && resultsLockPhase !== g.phase) {
+    resultsLockUntil = Date.now() + RESULTS_LOCK_MS;
+  }
+  if (g.phase !== 'roundEnd' && g.phase !== 'over') resultsLockPhase = null;
+  else resultsLockPhase = g.phase;
+}
+
+function tickResultsLock() {
+  if (!lastGame) return;
+  const locked = Date.now() < resultsLockUntil;
+  const secs = Math.max(0, Math.ceil((resultsLockUntil - Date.now()) / 1000));
+  if (lastGame.phase === 'roundEnd' && lastGame.youAreHost) {
+    const b = $('#next-round-btn');
+    b.disabled = locked;
+    b.textContent = locked ? `Следующий раунд (${secs})` : 'Следующий раунд';
+  }
+  if (lastGame.phase === 'over' && lastGame.youAreHost) {
+    const b = $('#rematch-btn');
+    b.disabled = locked;
+    b.textContent = locked ? `Сыграть ещё (${secs})` : 'Сыграть ещё';
+  }
+}
+
 function renderModals(g) {
   // итоги раунда
   const rm = $('#round-modal');
@@ -357,6 +387,8 @@ function renderModals(g) {
   } else {
     om.classList.add('hidden');
   }
+
+  tickResultsLock();
 }
 
 // ---------- выбор масти ----------
@@ -618,7 +650,7 @@ function tickTimer() {
   el.classList.toggle('low', left <= 10);
   el.classList.toggle('mine', mine);
 }
-setInterval(tickTimer, 250);
+setInterval(() => { tickTimer(); tickResultsLock(); }, 250);
 
 // ---------- звук наступления хода ----------
 

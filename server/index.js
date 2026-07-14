@@ -156,6 +156,10 @@ function broadcastGame(t) {
   if (!t.game) return;
   syncTurnTimer(t);
   recordGameResult(t);
+  // фиксируем момент появления таблицы результатов (для защиты от слишком быстрого пропуска)
+  const ph = t.game.phase;
+  if ((ph === 'roundEnd' || ph === 'over') && t.resultsPhase !== ph) t.resultsAt = Date.now();
+  t.resultsPhase = (ph === 'roundEnd' || ph === 'over') ? ph : null;
   const msLeft = t.turnDeadline ? Math.max(0, t.turnDeadline - Date.now()) : null;
   for (const tok of t.seats) {
     const rec = byToken.get(tok);
@@ -393,6 +397,9 @@ function handle(ws, m) {
       if (t.host !== token) throw new Error('Начать игру может только создатель стола');
       if (t.game && t.game.phase !== 'over') throw new Error('Игра уже идёт');
       if (t.seats.length < 2) throw new Error('Нужно минимум 2 игрока');
+      if (t.game && t.game.phase === 'over' && t.resultsAt && Date.now() - t.resultsAt < 6500) {
+        throw new Error('Дайте всем прочитать итоги партии');
+      }
       const seats = t.seats.map(x => ({ token: x, name: byToken.get(x).name }));
       t.game = new Game(seats);
       t.recorded = false;
@@ -444,6 +451,9 @@ function handle(ws, m) {
       const t = tableOf(token);
       if (!t || !t.game) throw new Error('Игра не идёт');
       if (t.host !== token) throw new Error('Следующий раунд запускает создатель стола');
+      if (t.resultsAt && Date.now() - t.resultsAt < 6500) {
+        throw new Error('Дайте всем прочитать итоги раунда');
+      }
       t.game.nextRound();
       t.lastActive = Date.now();
       broadcastGame(t);
