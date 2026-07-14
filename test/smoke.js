@@ -268,6 +268,35 @@ ok('чужой валет снизу не считается — только с
   assert.strictEqual(g.players[other].score, 70, '50 + 10×2 = 70 (чужой валет не суммируется; ×3 дало бы 80)');
 });
 
+ok('дамп валетов накрывает шестёрку и завершает раунд', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '6', s: '♠', id: '6♠' }, { r: 'J', s: '♥', id: 'J♥' }, { r: 'J', s: '♦', id: 'J♦' }];
+  g.players[other].hand = [{ r: 'A', s: '♥', id: 'A♥' }, { r: 'A', s: '♦', id: 'A♦' }]; // 30 → откроет счёт
+  g.playCard(g.players[who].token, '6♠');       // играем шестёрку → надо накрыть
+  assert(g.mustCoverSix, 'после шестёрки нужно накрыть');
+  g.dumpJacks(g.players[who].token, '♣');       // дамп двух валетов накрывает и завершает
+  assert.notStrictEqual(g.phase, 'playing', 'раунд завершён');
+  assert.strictEqual(g.players[other].score, 90, '30 × 3 (два валета)');
+});
+
+ok('после добора можно сыграть не только взятую карту', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }]; // уже есть подходящая (та же масть)
+  g.drawCard(g.players[who].token);              // добор
+  assert(g.drawnCardId, 'карта взята из прикупа');
+  g.playCard(g.players[who].token, '10♠');       // играем НЕ добранную — должно пройти
+  assert(!g.players[who].hand.some(c => c.id === '10♠'), '10♠ сыграна после добора');
+});
+
 ok('дамп двух валетов последними картами — ×3', () => {
   const g = freshGame(2);
   force(g, { top: { r: '7', s: '♠' } });

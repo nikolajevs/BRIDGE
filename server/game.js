@@ -206,10 +206,6 @@ class Game {
     if (this.pendingDraw > 0 && card.r !== '8') {
       throw new Error('Идёт цепочка восьмёрок — ответить можно только восьмёркой');
     }
-    if (this.drawnCardId && this.drawnCardId !== '__none__' && !this.mustCoverSix
-        && card.id !== this.drawnCardId) {
-      throw new Error('После добора можно сыграть только взятую карту');
-    }
     if (!this.canPlayCard(card)) throw new Error('Эту карту сейчас нельзя положить');
     if (card.r === 'J' && !SUITS.includes(chosenSuit)) throw new Error('Выберите масть для валета');
 
@@ -262,7 +258,6 @@ class Game {
     this.assertTurn(i);
     const p = this.players[i];
     if (this.pendingDraw > 0) throw new Error('Идёт цепочка восьмёрок — ответьте восьмёркой');
-    if (this.mustCoverSix) throw new Error('Сначала накройте шестёрку');
     if (this.drawnCardId) throw new Error('Вы уже брали карту — сыграйте её или пас');
     const jacks = p.hand.filter(c => c.r === 'J');
     if (jacks.length < 2) throw new Error('Сбросить пачкой можно только два и более валета');
@@ -273,6 +268,7 @@ class Game {
 
     for (const c of jacks) this.discard.push(c);
     p.hand = [];
+    this.mustCoverSix = false;   // валеты накрывают лежащую шестёрку
     this.kingStreak = 0;
     this.jackSuit = chosenSuit;
     this.drawnCardId = null;
@@ -518,9 +514,6 @@ class Game {
     const playable = (c) => {
       if (!myTurn) return false;
       if (this.pendingDraw > 0) return c.r === '8';
-      if (this.drawnCardId && this.drawnCardId !== '__none__' && !this.mustCoverSix) {
-        return c.id === this.drawnCardId && this.canPlayCard(c);
-      }
       return this.canPlayCard(c);
     };
 
@@ -546,7 +539,7 @@ class Game {
       drew: myTurn && !!this.drawnCardId,
       canDraw: myTurn && this.pendingDraw === 0 && (this.mustCoverSix || !this.drawnCardId),
       canPass: myTurn && !this.mustCoverSix && !!this.drawnCardId,
-      canDumpJacks: myTurn && this.pendingDraw === 0 && !this.mustCoverSix
+      canDumpJacks: myTurn && this.pendingDraw === 0
         && !this.drawnCardId && me && me.hand.length >= 2
         && me.hand.every(c => c.r === 'J'),
       log: this.log.slice(-60),
