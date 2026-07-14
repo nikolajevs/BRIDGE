@@ -237,8 +237,16 @@ function sendAuth(ws, user) {
     authToken,
     login: user.login,
     name: user.name,
+    isAdmin: db.isAdmin(user),
     stats: db.userStats(user.id),
   });
+}
+
+// проверить, что сессия принадлежит администратору
+function requireAdmin(auth) {
+  const user = db.userBySession(auth);
+  if (!user || !db.isAdmin(user)) throw new Error('Требуются права администратора');
+  return user;
 }
 
 function handle(ws, m) {
@@ -270,6 +278,28 @@ function handle(ws, m) {
     send(ws, { type: 'profile', stats: db.userStats(user.id) });
     return;
   }
+  if (m.type === 'adminListUsers') {
+    requireAdmin(m.auth);
+    send(ws, { type: 'adminUsers', users: db.listUsers() });
+    return;
+  }
+  if (m.type === 'adminUpdateUser') {
+    requireAdmin(m.auth);
+    db.updateUser(m.id, {
+      name: m.name, login: m.login,
+      password: m.password || undefined,
+      isAdmin: m.isAdmin,
+    });
+    send(ws, { type: 'adminUsers', users: db.listUsers(), notice: 'Изменения сохранены' });
+    return;
+  }
+  if (m.type === 'adminDeleteUser') {
+    const admin = requireAdmin(m.auth);
+    if (admin.id === m.id) throw new Error('Нельзя удалить собственный аккаунт');
+    db.deleteUser(m.id);
+    send(ws, { type: 'adminUsers', users: db.listUsers(), notice: 'Аккаунт удалён' });
+    return;
+  }
 
   if (m.type === 'hello') {
     // аккаунт (если пришёл валидный auth-токен) переопределяет имя
@@ -288,7 +318,7 @@ function handle(ws, m) {
       rec.name = name;
     }
     rec.userId = account ? account.id : null;
-    send(ws, { type: 'hello', token, name, account: account ? { login: account.login, name: account.name } : null });
+    send(ws, { type: 'hello', token, name, account: account ? { login: account.login, name: account.name, isAdmin: db.isAdmin(account) } : null });
 
     const t = tableOf(token);
     if (t) {

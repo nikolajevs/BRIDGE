@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
   games_played  INTEGER NOT NULL DEFAULT 0,
   games_won     INTEGER NOT NULL DEFAULT 0,
   rounds_won    INTEGER NOT NULL DEFAULT 0,
+  is_admin      INTEGER NOT NULL DEFAULT 0,
   created_at    INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (
@@ -33,6 +34,23 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_users_won ON users(games_won DESC, games_played ASC);
 `);
+
+// миграция: добавить is_admin, если база создана до этой колонки
+const cols = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+if (!cols.includes('is_admin')) {
+  db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+}
+
+// назначить админа по переменной окружения ADMIN_LOGIN (один раз при старте)
+const ADMIN_LOGIN = (process.env.ADMIN_LOGIN || '').trim().toLowerCase();
+if (ADMIN_LOGIN) {
+  db.prepare('UPDATE users SET is_admin = 1 WHERE login_lc = ?').run(ADMIN_LOGIN);
+}
+
+function isAdmin(user) {
+  if (!user) return false;
+  return user.is_admin === 1 || (ADMIN_LOGIN && user.login_lc === ADMIN_LOGIN);
+}
 
 // ---------- пароли (scrypt) ----------
 
@@ -143,11 +161,66 @@ function userStats(id) {
     roundsWon: u.rounds_won,
     winrate: u.games_played ? Math.round((u.games_won / u.games_played) * 100) : 0,
     rank: better + 1,
+    isAdmin: isAdmin(u),
   };
 }
+
+// ---------- админ ----------
+
+function listUsers() {
+  return db.prepare(`
+    SELECT id, login, name, games_played, games_won, rounds_won, is_admin, created_at
+    FROM users ORDER BY id ASC`
+  ).all().map(u => ({
+    id: u.id, login: u.login, name: u.name,
+    gamesPlayed: u.games_played, gamesWon: u.games_won, roundsWon: u.rounds_won,
+    isAdmin: u.is_admin === 1 || (ADMIN_LOGIN && u.login.toLowerCase() === ADMIN_LOGIN),
+    createdAt: u.created_at,
+  }));
+}
+
+function updateUser(id, fields) {
+  const u = getUserById(id);
+  if (!u) throw new Error('Пользователь не найден');
+
+  const sets = [];
+  const args = [];
+
+  if (fields.name !== undefined) {
+    const name = String(fields.name).trim().slice(0, 20);
+    if (!name) throw new Error('Имя не может быть пустым');
+    sets.push('name = ?'); args.push(name);
+  }
+  if (fields.login !== undefined) {
+    const login = String(fields.login).trim();
+    if (!LOGIN_RE.test(login)) throw new Error('Логин: 3–20 символов, латиница/цифры/._-');
+    const lc = login.toLowerCase();
+    const clash = db.prepare('SELECT id FROM users WHERE login_lc = ? AND id <> ?').get(lc, id);
+    if (clash) throw new Error('Такой логин уже занят');
+    sets.push('login = ?', 'login_lc = ?'); args.push(login, lc);
+  }
+  if (fields.password) {
+    if (String(fields.password).length < 6) throw new Error('Пароль минимум 6 символов');
+    const { hash, salt } = hashPassword(fields.password);
+    sets.push('pass_hash = ?', 'pass_salt = ?'); args.push(hash, salt);
+  }
+  if (fields.isAdmin !== undefined) {
+    sets.push('is_admin = ?'); args.push(fields.isAdmin ? 1 : 0);
+  }
+  if (!sets.length) return getUserById(id);
+  args.push(id);
+  db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...args);
+  return getUserById(id);
+}
+
+const deleteUser = db.transaction((id) => {
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+});
 
 module.exports = {
   register, login, getUserById,
   createSession, userBySession, deleteSession,
   recordGame, leaderboard, userStats,
+  isAdmin, listUsers, updateUser, deleteUser,
 };

@@ -94,6 +94,53 @@ ok('ранг игрока считается верно', () => {
   assert.strictEqual(db.userStats(a.id).rank, 1);
 });
 
+ok('админ: список пользователей', () => {
+  const list = db.listUsers();
+  assert(Array.isArray(list) && list.length >= 3);
+  assert(list[0].login && typeof list[0].gamesWon === 'number');
+});
+
+ok('админ: изменение имени и логина', () => {
+  const b = db.login('Bob', 'secret123');
+  db.updateUser(b.id, { name: 'Бобби', login: 'Bobby' });
+  const u = db.getUserById(b.id);
+  assert.strictEqual(u.name, 'Бобби');
+  assert.strictEqual(u.login, 'Bobby');
+  assert.strictEqual(u.login_lc, 'bobby');
+});
+
+ok('админ: смена логина на занятый — ошибка', () => {
+  const b = db.login('Bobby', 'secret123');
+  let threw = false;
+  try { db.updateUser(b.id, { login: 'Alice' }); } catch { threw = true; }
+  assert(threw);
+});
+
+ok('админ: сброс пароля', () => {
+  const b = db.login('Bobby', 'secret123');
+  db.updateUser(b.id, { password: 'newpass1' });
+  let ok1 = true; try { db.login('Bobby', 'secret123'); } catch { ok1 = false; }
+  assert(!ok1, 'старый пароль больше не подходит');
+  const u = db.login('Bobby', 'newpass1');
+  assert.strictEqual(u.login, 'Bobby');
+});
+
+ok('админ: назначение и снятие прав', () => {
+  const b = db.login('Bobby', 'newpass1');
+  db.updateUser(b.id, { isAdmin: true });
+  assert(db.isAdmin(db.getUserById(b.id)));
+  db.updateUser(b.id, { isAdmin: false });
+  assert(!db.isAdmin(db.getUserById(b.id)));
+});
+
+ok('админ: удаление аккаунта', () => {
+  const u = db.register('Temp', 'secret123', 'Врем');
+  const tok = db.createSession(u.id);
+  db.deleteUser(u.id);
+  assert.strictEqual(db.getUserById(u.id), undefined);
+  assert.strictEqual(db.userBySession(tok), null); // сессии тоже удалены
+});
+
 console.log(passed + ' проверок БД пройдено' + (process.exitCode ? ', есть ошибки!' : '.'));
 
 // уборка

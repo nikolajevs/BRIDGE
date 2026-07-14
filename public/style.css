@@ -249,6 +249,24 @@ input::placeholder { color: #6e5b49; }
   50% { box-shadow: 0 0 0 1px var(--danger), 0 0 26px rgba(196,86,63,.7); }
 }
 .me-info.one-card { color: #f0a08b; font-weight: 700; }
+
+/* ---------- админка ---------- */
+
+.admin-panel { max-width: 620px; }
+.admin-notice {
+  margin: 0 0 12px; color: #bfe0c4; font-size: 14px;
+  background: #1b3327; border: 1px solid var(--felt-glow); border-radius: 8px; padding: 8px 12px;
+}
+.admin-users { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+.admin-row { background: #1a110d; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.admin-fields { display: flex; flex-wrap: wrap; gap: 10px; }
+.admin-fields label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; flex: 1 1 130px; }
+.admin-fields input[type="text"] { font-size: 14px; padding: 7px 9px; }
+.au-admin-lbl { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; align-self: flex-end; color: #e8ddcc; }
+.au-admin-lbl input { width: auto; }
+.admin-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
+.admin-btns { display: flex; gap: 8px; }
+.au-del { color: #f0a08b; border-color: var(--danger); }
 .opp.out { opacity: .45; }
 .opp.offline .opp-name::after { content: ' ⌁'; color: var(--danger); }
 .opp-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; margin: 0 auto; }

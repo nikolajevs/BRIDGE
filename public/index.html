@@ -96,7 +96,21 @@
 
     <div class="row cabinet-actions">
       <button id="cabinet-back" class="btn">← В лобби</button>
+      <button id="admin-open" class="btn hidden">Управление аккаунтами</button>
       <button id="logout-btn" class="btn ghost hidden">Выйти из аккаунта</button>
+    </div>
+  </div>
+</section>
+
+<!-- ЭКРАН: админка -->
+<section id="screen-admin" class="screen center-screen hidden">
+  <div class="panel admin-panel">
+    <h2 class="panel-title">Управление аккаунтами</h2>
+    <p id="admin-notice" class="admin-notice hidden"></p>
+    <div id="admin-users" class="admin-users"></div>
+    <div class="row cabinet-actions">
+      <button id="admin-back" class="btn">← В кабинет</button>
+      <button id="admin-refresh" class="btn ghost">Обновить</button>
     </div>
   </div>
 </section>

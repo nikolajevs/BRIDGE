@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'scoring-whip-2026-07-13';
+const BUILD = 'admin-2026-07-13';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
@@ -69,11 +69,15 @@ function dispatch(m) {
       break;
     case 'auth':
       store.auth = m.authToken;
-      account = { login: m.login, name: m.name };
+      account = { login: m.login, name: m.name, isAdmin: !!m.isAdmin };
       lastProfile = m.stats || null;
       authError('');
       // входим в игру под аккаунтом
       sendMsg({ type: 'hello', auth: store.auth, token: store.token });
+      break;
+    case 'adminUsers':
+      lastAdminUsers = m.users;
+      renderAdminUsers(m.notice);
       break;
     case 'loggedOut':
       account = null;
@@ -119,6 +123,7 @@ function dispatch(m) {
 
 let lastProfile = null;
 let lastLeaderboard = null;
+let lastAdminUsers = null;
 
 function authError(msg) {
   const el = $('#auth-error');
@@ -131,7 +136,7 @@ function authError(msg) {
 
 function show(name) {
   currentScreen = name;
-  for (const s of ['name', 'lobby', 'cabinet', 'table', 'game']) {
+  for (const s of ['name', 'lobby', 'cabinet', 'admin', 'table', 'game']) {
     $('#screen-' + s).classList.toggle('hidden', s !== name);
   }
 }
@@ -449,6 +454,66 @@ $('#cabinet-link').onclick = (e) => {
 $('#cabinet-back').onclick = () => show('lobby');
 $('#logout-btn').onclick = () => sendMsg({ type: 'logout', auth: store.auth });
 
+// ---------- админка ----------
+
+$('#admin-open').onclick = () => openAdmin();
+$('#admin-back').onclick = () => show('cabinet');
+$('#admin-refresh').onclick = () => sendMsg({ type: 'adminListUsers', auth: store.auth });
+
+function openAdmin() {
+  if (!(account && account.isAdmin)) { toast('Нужны права администратора'); return; }
+  lastAdminUsers = null;
+  renderAdminUsers();
+  sendMsg({ type: 'adminListUsers', auth: store.auth });
+  show('admin');
+}
+
+function renderAdminUsers(notice) {
+  const nb = $('#admin-notice');
+  if (notice) { nb.textContent = notice; nb.classList.remove('hidden'); }
+  else nb.classList.add('hidden');
+
+  const box = $('#admin-users');
+  const users = lastAdminUsers;
+  if (!users) { box.innerHTML = '<div class="muted">Загрузка…</div>'; return; }
+  if (!users.length) { box.innerHTML = '<div class="muted">Нет аккаунтов</div>'; return; }
+  box.innerHTML = users.map(u => `
+    <div class="admin-row" data-id="${u.id}">
+      <div class="admin-fields">
+        <label>Логин<input class="au-login" type="text" maxlength="20" value="${esc(u.login)}"></label>
+        <label>Имя<input class="au-name" type="text" maxlength="20" value="${esc(u.name)}"></label>
+        <label>Новый пароль<input class="au-pass" type="text" maxlength="72" placeholder="оставить пустым"></label>
+        <label class="au-admin-lbl"><input class="au-admin" type="checkbox" ${u.isAdmin ? 'checked' : ''}> админ</label>
+      </div>
+      <div class="admin-meta">
+        <span class="muted">id ${u.id} · ${u.gamesWon} побед / ${u.gamesPlayed} партий</span>
+        <div class="admin-btns">
+          <button class="btn tiny au-save">Сохранить</button>
+          <button class="btn tiny ghost au-del">Удалить</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  box.querySelectorAll('.admin-row').forEach(row => {
+    const id = Number(row.dataset.id);
+    row.querySelector('.au-save').onclick = () => {
+      sendMsg({
+        type: 'adminUpdateUser', auth: store.auth, id,
+        login: row.querySelector('.au-login').value.trim(),
+        name: row.querySelector('.au-name').value.trim(),
+        password: row.querySelector('.au-pass').value,
+        isAdmin: row.querySelector('.au-admin').checked,
+      });
+    };
+    row.querySelector('.au-del').onclick = () => {
+      const login = row.querySelector('.au-login').value.trim();
+      if (confirm(`Удалить аккаунт «${login}»? Это необратимо.`)) {
+        sendMsg({ type: 'adminDeleteUser', auth: store.auth, id });
+      }
+    };
+  });
+}
+
 function openCabinet() {
   lastProfile = null; lastLeaderboard = null;
   renderCabinet(); renderLeaderboard();
@@ -460,6 +525,7 @@ function openCabinet() {
 function renderCabinet() {
   const box = $('#cabinet-stats');
   $('#logout-btn').classList.toggle('hidden', !account);
+  $('#admin-open').classList.toggle('hidden', !(account && account.isAdmin));
   if (!account) {
     box.innerHTML = '<p class="muted">Вы играете как гость. Войдите в аккаунт, чтобы сохранять статистику и попадать в топ-100.</p>';
     return;
