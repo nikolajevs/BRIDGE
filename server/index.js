@@ -392,6 +392,7 @@ function handle(ws, m) {
         host: token,
         seats: [token],
         game: null,
+        createdAt: Date.now(),
         lastActive: Date.now(),
       };
       tables.set(id, t);
@@ -545,23 +546,47 @@ function handle(ws, m) {
   }
 }
 
-// уборка брошенных столов (все офлайн дольше 15 минут)
+const EMPTY_TABLE_MS = Number(process.env.EMPTY_TABLE_MS) || 5 * 60 * 1000;    // стол, к которому никто не подсел
+const ABANDONED_TABLE_MS = Number(process.env.ABANDONED_TABLE_MS) || 15 * 60 * 1000; // все офлайн — стол убирается
+const CLEANUP_MS = Number(process.env.CLEANUP_MS) || 30 * 1000;                 // как часто проверяем
+
+// Закрыть стол: погасить таймеры, освободить игроков, удалить ботов и сам стол.
+// Оставшимся за столом людям шлём причину и возвращаем их в лобби.
+function closeTable(t, notice) {
+  if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
+  if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+  const sockets = [];
+  for (const tok of t.seats) {
+    const r = byToken.get(tok);
+    if (!r) continue;
+    r.tableId = null;
+    if (r.ws) sockets.push(r.ws);
+  }
+  deleteTableBots(t);
+  tables.delete(t.id);
+  if (notice) for (const ws of sockets) send(ws, { type: 'error', msg: notice });
+  broadcastLobby(); // вернёт освобождённых игроков в лобби и обновит список у всех
+}
+
+// уборка столов
 setInterval(() => {
   const now = Date.now();
   for (const t of tables.values()) {
     const anyOnline = t.seats.some(tok => byToken.get(tok) && byToken.get(tok).ws);
-    if (!anyOnline && now - t.lastActive > 15 * 60 * 1000) {
-      for (const tok of t.seats) {
-        const r = byToken.get(tok);
-        if (r) r.tableId = null;
-      }
-      if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
-      if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
-      deleteTableBots(t);
-      tables.delete(t.id);
+
+    // брошенный стол: все офлайн дольше 15 минут
+    if (!anyOnline && now - t.lastActive > ABANDONED_TABLE_MS) {
+      closeTable(t);
+      continue;
+    }
+
+    // игра так и не началась и никто не подсел за 5 минут
+    const humans = t.seats.filter(tok => !((byToken.get(tok) || {}).isBot)).length;
+    if (!t.game && humans <= 1 && now - (t.createdAt || t.lastActive) > EMPTY_TABLE_MS) {
+      closeTable(t, 'Стол закрыт: за 5 минут никто не присоединился');
     }
   }
-}, 60 * 1000);
+}, CLEANUP_MS);
 
 server.listen(PORT, () => {
   console.log(`«Бридж» запущена: http://localhost:${PORT}`);

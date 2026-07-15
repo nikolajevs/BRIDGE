@@ -290,10 +290,11 @@ ok('после добора можно сыграть не только взят
   g.mustCoverSix = false;
   g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
   const who = g.turn;
-  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }]; // уже есть подходящая (та же масть)
-  g.drawCard(g.players[who].token);              // добор
-  assert(g.drawnCardId, 'карта взята из прикупа');
-  g.playCard(g.players[who].token, '10♠');       // играем НЕ добранную — должно пройти
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];  // подходит по масти
+  g.deck = [{ r: '6', s: '♥', id: '6♥' }];                 // добор — заведомо неподходящая карта
+  g.drawCard(g.players[who].token);
+  assert.strictEqual(g.drawnCardId, '6♥', 'взята карта из прикупа');
+  g.playCard(g.players[who].token, '10♠');                 // играем НЕ добранную — должно пройти
   assert(!g.players[who].hand.some(c => c.id === '10♠'), '10♠ сыграна после добора');
 });
 
