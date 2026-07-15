@@ -5,6 +5,9 @@
 const BUILD = 'donate-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
+// Ссылка для пожертвований (одна на все места, где она показывается)
+const DONATE_URL = 'https://donationbox.lv/donation?campaign_title=BRIDGE.LAT%20Donations&detail=Ziedojums&iban=LV28HABA0551027967329&payee=Igors%20Nikolajevs&pp=bridgegame&rec=1&s1=1&s2=5&s3=10';
+
 const $ = (s) => document.querySelector(s);
 
 // ---------- локализация ----------
@@ -893,6 +896,7 @@ refreshSoundBtn();
 
 $('#lang-toggle').onclick = () => setLang(lang === 'ru' ? 'en' : 'ru');
 applyStaticI18n();
+document.querySelectorAll('.donate-link').forEach(a => { a.href = DONATE_URL; });
 
 const buildTag = $('#build-tag');
 if (buildTag) buildTag.textContent = 'build ' + BUILD;
