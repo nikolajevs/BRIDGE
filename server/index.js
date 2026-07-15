@@ -105,6 +105,29 @@ function broadcastTable(t) {
 
 const TURN_MS = 30000; // лимит времени на ход
 
+// Сколько держим место за игроком, если связь оборвалась до начала игры.
+// Клиент переподключается через 1.5 с, так что минуты хватает и на смену сети.
+const SEAT_GRACE_MS = Number(process.env.SEAT_GRACE_MS) || 60 * 1000;
+
+// Отложенно освобождаем место: если игрок вернулся — таймер снимается в hello.
+function scheduleSeatDrop(token) {
+  const rec = byToken.get(token);
+  if (!rec || rec.isBot) return;
+  clearTimeout(rec.dropTimer);
+  rec.dropTimer = setTimeout(() => {
+    const r = byToken.get(token);
+    if (!r) return;
+    r.dropTimer = null;
+    if (r.ws) return;                                   // успел вернуться
+    const t = tableOf(token);
+    if (!t) return;
+    if (t.game && t.game.phase !== 'over') return;      // игра началась — место за ним
+    removeSeat(t, token);
+    if (tables.has(t.id)) broadcastTable(t);
+    broadcastLobby();
+  }, SEAT_GRACE_MS);
+}
+
 // (пере)запускает 30-секундный таймер, когда ход переходит новому игроку.
 // Пока ходит тот же игрок (добор, накрытие шестёрки) — таймер не сбрасывается.
 function syncTurnTimer(t) {
@@ -224,7 +247,10 @@ function removeSeat(t, token) {
   const i = t.seats.indexOf(token);
   if (i >= 0) t.seats.splice(i, 1);
   const rec = byToken.get(token);
-  if (rec) rec.tableId = null;
+  if (rec) {
+    rec.tableId = null;
+    if (rec.dropTimer) { clearTimeout(rec.dropTimer); rec.dropTimer = null; }
+  }
 
   // остались только боты (или никого) — стол больше не нужен
   const humans = t.seats.filter(x => !((byToken.get(x) || {}).isBot));
@@ -264,10 +290,10 @@ wss.on('connection', (ws) => {
       t.game.setConnected(token, false);
       broadcastGame(t);
     } else {
-      // до игры (или после её конца) освобождаем место
-      removeSeat(t, token);
-      if (tables.has(t.id)) broadcastTable(t);
-      broadcastLobby();
+      // до игры (или после её конца) место не отдаём сразу — ждём возвращения,
+      // иначе короткий обрыв связи выбрасывал игрока со стола в лобби
+      broadcastTable(t);
+      scheduleSeatDrop(token);
     }
   });
 });
@@ -359,6 +385,7 @@ function handle(ws, m) {
       rec.ws = ws;
       rec.name = name;
     }
+    if (rec.dropTimer) { clearTimeout(rec.dropTimer); rec.dropTimer = null; } // вернулся — место за ним
     rec.userId = account ? account.id : null;
     send(ws, { type: 'hello', token, name, account: account ? { login: account.login, name: account.name, isAdmin: db.isAdmin(account) } : null });
 
