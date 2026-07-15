@@ -437,7 +437,7 @@ input::placeholder { color: #6e5b49; }
 .winner-line b { color: var(--accent); }
 .modal-actions { justify-content: center; }
 
-.rules-line { margin: 6px 0 18px; }
+.rules-line { margin: 10px 0 26px; }
 .rules-link {
   font-size: 14px; color: var(--muted); text-decoration: none;
   border-bottom: 1px dotted var(--line); padding-bottom: 1px;
