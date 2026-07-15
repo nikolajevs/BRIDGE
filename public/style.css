@@ -100,7 +100,6 @@ input::placeholder { color: #6e5b49; }
   letter-spacing: .04em;
   text-shadow: 0 2px 0 #5c421a, 0 10px 40px rgba(217,164,65,.25);
 }
-.brand.small { font-size: 22px; text-shadow: none; }
 .intro { text-align: center; max-width: 420px; width: 100%; }
 .tagline { color: var(--muted); margin: 4px 0 28px; }
 
