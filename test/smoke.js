@@ -297,6 +297,18 @@ ok('после добора можно сыграть не только взят
   assert(!g.players[who].hand.some(c => c.id === '10♠'), '10♠ сыграна после добора');
 });
 
+ok('бот делает ход и передаёт очередь', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  g.players[who].hand = [{ r: '8', s: '♣', id: '8♣' }, { r: '10', s: '♠', id: '10♠' }];
+  g.botStep(who);
+  // бот должен либо сходить (ход ушёл), либо добрать/спасовать — в любом случае состояние изменилось
+  assert(g.turn !== who || g.drawnCardId || g.phase !== 'playing', 'бот совершил действие');
+});
+
 ok('дамп двух валетов последними картами — ×3', () => {
   const g = freshGame(2);
   force(g, { top: { r: '7', s: '♠' } });

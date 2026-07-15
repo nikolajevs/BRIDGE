@@ -96,7 +96,8 @@ function broadcastTable(t) {
         name: byToken.get(x) ? byToken.get(x).name : '?',
         host: x === t.host,
         you: x === tok,
-        connected: !!(byToken.get(x) && byToken.get(x).ws),
+        isBot: !!(byToken.get(x) && byToken.get(x).isBot),
+        connected: !!(byToken.get(x) && (byToken.get(x).ws || byToken.get(x).isBot)),
       })),
     });
   }
@@ -172,6 +173,31 @@ function broadcastGame(t) {
     st.turnLimitMs = TURN_MS;
     send(rec.ws, st);
   }
+  scheduleBot(t);
+}
+
+// Если ход за ботом — через небольшую задержку делаем один его шаг и снова
+// рассылаем состояние (что запускает следующий шаг). Так бот «думает» по ходу.
+function scheduleBot(t) {
+  if (!t.game || t.game.phase !== 'playing') {
+    if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+    return;
+  }
+  const cur = t.game.players[t.game.turn].token;
+  const rec = byToken.get(cur);
+  const isBot = rec && rec.isBot;
+  if (!isBot) return;
+  if (t.botTimer) return; // шаг уже запланирован
+  t.botTimer = setTimeout(() => {
+    t.botTimer = null;
+    if (!t.game || t.game.phase !== 'playing') return;
+    const idx = t.game.turn;
+    if (!(byToken.get(t.game.players[idx].token) || {}).isBot) return;
+    try { t.game.botStep(idx); } catch (e) { console.error('[bot]', e.message); }
+    t.lastActive = Date.now();
+    broadcastGame(t);
+    if (t.game.phase === 'over') broadcastTable(t);
+  }, 900);
 }
 
 function broadcastChat(t, from, text) {
@@ -187,17 +213,29 @@ function tableOf(token) {
   return tables.get(rec.tableId) || null;
 }
 
+function deleteTableBots(t) {
+  for (const x of t.seats) {
+    const r = byToken.get(x);
+    if (r && r.isBot) byToken.delete(x);
+  }
+}
+
 function removeSeat(t, token) {
   const i = t.seats.indexOf(token);
   if (i >= 0) t.seats.splice(i, 1);
   const rec = byToken.get(token);
   if (rec) rec.tableId = null;
-  if (t.seats.length === 0) {
+
+  // остались только боты (или никого) — стол больше не нужен
+  const humans = t.seats.filter(x => !((byToken.get(x) || {}).isBot));
+  if (humans.length === 0) {
     if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
+    if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+    deleteTableBots(t);
     tables.delete(t.id);
-  } else if (t.host === token) {
-    t.host = t.seats[0];
+    return;
   }
+  if (t.host === token) t.host = humans[0]; // хост всегда человек
 }
 
 // ---------- обработка сообщений ----------
@@ -391,6 +429,40 @@ function handle(ws, m) {
       break;
     }
 
+    case 'addBot': {
+      const t = tableOf(token);
+      if (!t) throw new Error('Вы не за столом');
+      if (t.host !== token) throw new Error('Добавить бота может только создатель стола');
+      if (t.game && t.game.phase !== 'over') throw new Error('Идёт игра');
+      if (t.seats.length >= 6) throw new Error('Стол заполнен (максимум 6)');
+      const botToken = 'bot:' + crypto.randomUUID();
+      const n = t.seats.filter(x => (byToken.get(x) || {}).isBot).length + 1;
+      byToken.set(botToken, { name: 'Бот ' + n, ws: null, isBot: true, tableId: t.id });
+      t.seats.push(botToken);
+      t.lastActive = Date.now();
+      broadcastTable(t);
+      broadcastLobby();
+      break;
+    }
+
+    case 'removeBot': {
+      const t = tableOf(token);
+      if (!t) throw new Error('Вы не за столом');
+      if (t.host !== token) throw new Error('Только создатель стола');
+      if (t.game && t.game.phase !== 'over') throw new Error('Идёт игра');
+      // убираем последнего бота
+      for (let k = t.seats.length - 1; k >= 0; k--) {
+        if ((byToken.get(t.seats[k]) || {}).isBot) {
+          byToken.delete(t.seats[k]);
+          t.seats.splice(k, 1);
+          break;
+        }
+      }
+      broadcastTable(t);
+      broadcastLobby();
+      break;
+    }
+
     case 'startGame': {
       const t = tableOf(token);
       if (!t) throw new Error('Вы не за столом');
@@ -484,6 +556,8 @@ setInterval(() => {
         if (r) r.tableId = null;
       }
       if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
+      if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+      deleteTableBots(t);
       tables.delete(t.id);
     }
   }

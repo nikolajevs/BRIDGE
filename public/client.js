@@ -2,10 +2,115 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'results-lock-2026-07-13';
+const BUILD = 'i18n-bot-2026-07-14';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
+
+// ---------- локализация ----------
+
+const I18N = {
+  ru: {
+    tagline: 'карточная игра за общим столом · 2–6 игроков',
+    tabGuest: 'Гость', tabLogin: 'Вход', tabRegister: 'Регистрация',
+    yourName: 'Ваше имя', toTable: 'За стол',
+    guestHint: 'Быстрый вход без регистрации. Статистика гостей не сохраняется.',
+    login: 'Логин', password: 'Пароль', signIn: 'Войти',
+    regLogin: 'Логин (3–20, латиница/цифры)', displayName: 'Отображаемое имя (необязательно)',
+    regPass: 'Пароль (мин. 6)', createAccount: 'Создать аккаунт',
+    youAre: 'Вы —', deckTitle: 'Прикуп', lobby: 'Лобби', you: 'вы', account: 'аккаунт', cabinet: 'кабинет', change: 'сменить',
+    openTables: 'Открытые столы', noTables: 'Пока нет открытых столов — создайте свой',
+    ownTable: 'Свой стол', tableNamePh: 'Название стола (необязательно)', create: 'Создать',
+    joinByCode: 'Присоединиться по коду', codePh: 'Код, напр. K7XM', enter: 'Войти',
+    sit: 'Сесть', codeForFriends: 'Код для друзей:',
+    addBot: 'Добавить бота', removeBot: 'Убрать бота',
+    startGame: 'Начать игру', startNeed2: 'Начать игру (нужно ≥ 2)',
+    waitHost: 'Ждём, пока создатель стола начнёт игру…', leave: 'Выйти',
+    host: 'создатель', bot: 'бот',
+    cabinetTitle: 'Личный кабинет', top100: 'Топ-100 по победам',
+    toLobby: '← В лобби', manageAccounts: 'Управление аккаунтами', logout: 'Выйти из аккаунта',
+    guestCabinet: 'Вы играете как гость. Войдите в аккаунт, чтобы сохранять статистику и попадать в топ-100.',
+    loading: 'Загрузка…', rankL: 'место', winsL: 'побед', gamesL: 'партий', winrateL: 'винрейт', roundsL: 'раундов',
+    noGames: 'Пока нет сыгранных партий', winsShort: 'побед', gamesShort: 'партий',
+    round: 'раунд', log: 'Журнал', logChat: 'Журнал и чат', sound: 'Звук хода',
+    takeCard: 'Взять карту', pass: 'Пас',
+    yourTurn: 'Ваш ход', mustEight: 'Вы обязаны положить восьмёрку!',
+    mustCover: 'Накройте шестёрку (или берите из прикупа)',
+    playDrawn: 'Сыграйте взятую карту или пасуйте',
+    jackChoose: 'Валет: закажите масть', cancel: 'Отмена',
+    nextRound: 'Следующий раунд', waitHostShort: 'Ждём создателя стола…',
+    gameOver: 'Партия окончена', winnerIs: 'Победитель —', rematch: 'Сыграть ещё',
+    rematchWait: 'Создатель стола может начать новую партию', leaveToLobby: 'Выйти в лобби',
+    youDeal: 'вы раздаёте', youOut: 'вы выбыли', lastCard: 'последняя карта!',
+    chatPh: 'Сообщение столу…', enterName: 'Введите имя', code4: 'Код стола — 4 символа',
+    needLoginPass: 'Введите логин и пароль',
+    refresh: 'Обновить', save: 'Сохранить', del: 'Удалить', newPass: 'Новый пароль',
+    emptyKeep: 'оставить пустым', adminFlag: 'админ', backCabinet: '← В кабинет',
+    reconnecting: 'Переподключение…',
+  },
+  en: {
+    tagline: 'card game at a shared table · 2–6 players',
+    tabGuest: 'Guest', tabLogin: 'Sign in', tabRegister: 'Sign up',
+    yourName: 'Your name', toTable: 'Play',
+    guestHint: 'Quick play without registration. Guest stats are not saved.',
+    login: 'Login', password: 'Password', signIn: 'Sign in',
+    regLogin: 'Login (3–20, latin/digits)', displayName: 'Display name (optional)',
+    regPass: 'Password (min. 6)', createAccount: 'Create account',
+    youAre: 'You —', deckTitle: 'Deck', lobby: 'Lobby', you: 'you', account: 'account', cabinet: 'profile', change: 'change',
+    openTables: 'Open tables', noTables: 'No open tables yet — create your own',
+    ownTable: 'Your table', tableNamePh: 'Table name (optional)', create: 'Create',
+    joinByCode: 'Join by code', codePh: 'Code, e.g. K7XM', enter: 'Join',
+    sit: 'Sit', codeForFriends: 'Code for friends:',
+    addBot: 'Add bot', removeBot: 'Remove bot',
+    startGame: 'Start game', startNeed2: 'Start game (need ≥ 2)',
+    waitHost: 'Waiting for the host to start the game…', leave: 'Leave',
+    host: 'host', bot: 'bot',
+    cabinetTitle: 'Profile', top100: 'Top 100 by wins',
+    toLobby: '← To lobby', manageAccounts: 'Manage accounts', logout: 'Log out',
+    guestCabinet: 'You are playing as a guest. Sign in to save stats and enter the top 100.',
+    loading: 'Loading…', rankL: 'rank', winsL: 'wins', gamesL: 'games', winrateL: 'winrate', roundsL: 'rounds',
+    noGames: 'No games played yet', winsShort: 'wins', gamesShort: 'games',
+    round: 'round', log: 'Log', logChat: 'Log & chat', sound: 'Turn sound',
+    takeCard: 'Draw card', pass: 'Pass',
+    yourTurn: 'Your turn', mustEight: 'You must play an eight!',
+    mustCover: 'Cover the six (or draw from the deck)',
+    playDrawn: 'Play the drawn card or pass',
+    jackChoose: 'Jack: choose a suit', cancel: 'Cancel',
+    nextRound: 'Next round', waitHostShort: 'Waiting for the host…',
+    gameOver: 'Game over', winnerIs: 'Winner —', rematch: 'Play again',
+    rematchWait: 'The host can start a new game', leaveToLobby: 'Back to lobby',
+    youDeal: 'you deal', youOut: 'you are out', lastCard: 'last card!',
+    chatPh: 'Message to the table…', enterName: 'Enter a name', code4: 'Table code is 4 characters',
+    needLoginPass: 'Enter login and password',
+    refresh: 'Refresh', save: 'Save', del: 'Delete', newPass: 'New password',
+    emptyKeep: 'leave empty', adminFlag: 'admin', backCabinet: '← To profile',
+    reconnecting: 'Reconnecting…',
+  },
+};
+
+let lang = localStorage.getItem('g125_lang');
+if (!lang) lang = (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'ru';
+if (!I18N[lang]) lang = 'ru';
+function t(key, arg) {
+  let v = (I18N[lang] && I18N[lang][key] != null) ? I18N[lang][key] : I18N.ru[key];
+  if (v == null) return key;
+  return typeof v === 'function' ? v(arg) : v;
+}
+function applyStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.documentElement.lang = lang;
+  const lb = $('#lang-toggle'); if (lb) lb.textContent = lang === 'ru' ? 'EN' : 'RU';
+}
+function setLang(l) {
+  lang = I18N[l] ? l : 'ru';
+  localStorage.setItem('g125_lang', lang);
+  applyStaticI18n();
+  if (typeof refreshSoundBtn === 'function') refreshSoundBtn();
+  if (lastGame) renderGame(lastGame);
+  if (lastLobby) renderLobby(lastLobby);
+}
 
 const store = {
   get token() { return localStorage.getItem('g125_token') || ''; },
@@ -48,6 +153,7 @@ function connect() {
 
   ws.onclose = () => {
     wsReady = false;
+    $('#conn').textContent = t('reconnecting');
     $('#conn').classList.remove('hidden');
     clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connect, 1500);
@@ -93,6 +199,7 @@ function dispatch(m) {
       renderLeaderboard();
       break;
     case 'lobby':
+      lastLobby = m;
       renderLobby(m);
       show('lobby');
       break;
@@ -125,6 +232,7 @@ function dispatch(m) {
 let lastProfile = null;
 let lastLeaderboard = null;
 let lastAdminUsers = null;
+let lastLobby = null;
 
 function authError(msg) {
   const el = $('#auth-error');
@@ -144,11 +252,11 @@ function show(name) {
 
 let toastTimer = null;
 function toast(msg) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.remove('hidden');
+  const el = $('#toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), 3200);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
 }
 
 function esc(s) {
@@ -174,16 +282,17 @@ function cardHTML(c, cls = '') {
 function renderLobby(m) {
   $('#lobby-name').textContent = store.name;
   $('#lobby-acc-badge').classList.toggle('hidden', !account);
+  $('#lobby-acc-badge').textContent = t('account');
   const list = $('#tables-list');
   if (!m.tables.length) {
-    list.innerHTML = '<div class="empty">Пока нет открытых столов — создайте свой</div>';
+    list.innerHTML = `<div class="empty">${t('noTables')}</div>`;
     return;
   }
-  list.innerHTML = m.tables.map(t => `
+  list.innerHTML = m.tables.map(tbl => `
     <div class="table-row">
-      <div><span class="tname">${esc(t.name)}</span>
-        <span class="tmeta">${t.players}/6 · код ${t.id}</span></div>
-      <button class="btn tiny" data-join="${t.id}">Сесть</button>
+      <div><span class="tname">${esc(tbl.name)}</span>
+        <span class="tmeta">${tbl.players}/6 · ${tbl.id}</span></div>
+      <button class="btn tiny" data-join="${tbl.id}">${t('sit')}</button>
     </div>`).join('');
   list.querySelectorAll('[data-join]').forEach(b => {
     b.onclick = () => sendMsg({ type: 'joinTable', id: b.dataset.join });
@@ -198,15 +307,19 @@ function renderTable(m) {
   $('#table-players').innerHTML = m.players.map(p => `
     <div class="seat${p.connected ? '' : ' offline'}">
       <span class="dot"></span>
-      <b>${esc(p.name)}${p.you ? ' (вы)' : ''}</b>
-      ${p.host ? '<span class="tag">создатель</span>' : ''}
+      <b>${esc(p.name)}${p.you ? ' (' + t('you') + ')' : ''}</b>
+      ${p.isBot ? `<span class="tag bot">${t('bot')}</span>` : ''}
+      ${p.host ? `<span class="tag">${t('host')}</span>` : ''}
     </div>`).join('');
   const canStart = m.youAreHost && m.players.length >= 2;
   $('#start-btn').classList.toggle('hidden', !m.youAreHost);
   $('#start-btn').disabled = !canStart;
-  $('#start-btn').textContent = m.players.length >= 2
-    ? 'Начать игру' : 'Начать игру (нужно ≥ 2)';
+  $('#start-btn').textContent = m.players.length >= 2 ? t('startGame') : t('startNeed2');
   $('#wait-host').classList.toggle('hidden', m.youAreHost);
+
+  const bots = m.players.filter(p => p.isBot).length;
+  $('#add-bot-btn').classList.toggle('hidden', !m.youAreHost || m.players.length >= 6);
+  $('#remove-bot-btn').classList.toggle('hidden', !m.youAreHost || bots === 0);
 }
 
 // ---------- игра ----------
@@ -214,11 +327,12 @@ function renderTable(m) {
 const SUIT_LABEL = { '♠': 'пики', '♣': 'трефы', '♥': 'червы', '♦': 'бубны' };
 
 function renderGame(g) {
-  $('#g-table-name').textContent = `${g.tableName} · код ${g.tableId}`;
-  $('#g-round').textContent = `раунд ${g.round}`;
+  $('#g-table-name').textContent = `${g.tableName} · ${g.tableId}`;
+  $('#g-round').textContent = `${t('round')} ${g.round}`;
 
   // соперники (и я в общем ряду, если игроков > 2 — показываем всех кроме себя)
   const opp = $('#opponents');
+  const ptsLbl = lang === 'en' ? 'pts' : 'очк.';
   opp.innerHTML = g.players.map((p, i) => {
     if (p.you) return '';
     const cls = [
@@ -233,10 +347,11 @@ function renderGame(g) {
     for (let k = 0; k < n; k++) minis += '<div class="mini"></div>';
     if (p.count > 8) minis += `<span class="more">+${p.count - 8}</span>`;
     if (p.count === 0 && !p.eliminated) minis = '<span class="more">—</span>';
+    const score = p.eliminated ? (lang === 'en' ? 'out' : 'выбыл') : `${p.score} ${ptsLbl}`;
     return `<div class="${cls}">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
       <div class="opp-cards">${minis}</div>
-      <div class="opp-score">${p.score} очк.</div>
+      <div class="opp-score">${score}</div>
     </div>`;
   }).join('');
 
@@ -264,12 +379,12 @@ function renderGame(g) {
   if (g.phase === 'playing') {
     if (g.youIdx === g.turnIdx) {
       st.classList.add('mine');
-      if (g.mustPlayEight) { st.classList.add('warn'); st.textContent = 'Вы обязаны положить восьмёрку!'; }
-      else if (g.mustCoverSix) { st.classList.add('warn'); st.textContent = 'Накройте шестёрку (или берите из прикупа)'; }
-      else if (g.drew) st.textContent = 'Сыграйте взятую карту или пасуйте';
-      else st.textContent = 'Ваш ход';
+      if (g.mustPlayEight) { st.classList.add('warn'); st.textContent = t('mustEight'); }
+      else if (g.mustCoverSix) { st.classList.add('warn'); st.textContent = t('mustCover'); }
+      else if (g.drew) st.textContent = t('playDrawn');
+      else st.textContent = t('yourTurn');
     } else {
-      st.textContent = turnP ? `Ходит ${turnP.name}…` : '';
+      st.textContent = turnP ? `${turnP.name}…` : '';
     }
   } else {
     st.textContent = '';
@@ -292,11 +407,13 @@ function renderGame(g) {
 
   // кнопки
   $('#draw-btn').disabled = !g.canDraw;
+  $('#draw-btn').textContent = t('takeCard');
   $('#pass-btn').disabled = !g.canPass;
+  $('#pass-btn').textContent = t('pass');
   const dumpBtn = $('#dump-jacks-btn');
   if (g.canDumpJacks) {
     const n = g.hand.length;
-    dumpBtn.textContent = `Скинуть ${n} валета (×${n + 1})`;
+    dumpBtn.textContent = lang === 'en' ? `Dump ${n} jacks (×${n + 1})` : `Скинуть ${n} валета (×${n + 1})`;
     dumpBtn.classList.remove('hidden');
   } else {
     dumpBtn.classList.add('hidden');
@@ -306,7 +423,7 @@ function renderGame(g) {
   const me = g.players[g.youIdx];
   const meInfo = $('#me-info');
   meInfo.textContent = me
-    ? `${me.name} · ${me.score} очк.${g.youIdx === g.dealerIdx ? ' · вы раздаёте' : ''}${me.eliminated ? ' · вы выбыли' : ''}${me && me.count === 1 && !me.eliminated ? ' · последняя карта!' : ''}`
+    ? `${me.name} · ${me.score} ${ptsLbl}${g.youIdx === g.dealerIdx ? ' · ' + t('youDeal') : ''}${me.eliminated ? ' · ' + t('youOut') : ''}${me && me.count === 1 && !me.eliminated ? ' · ' + t('lastCard') : ''}`
     : '';
   meInfo.classList.toggle('one-card', !!(me && me.count === 1 && !me.eliminated));
 
@@ -354,12 +471,12 @@ function tickResultsLock() {
   if (lastGame.phase === 'roundEnd' && lastGame.youAreHost) {
     const b = $('#next-round-btn');
     b.disabled = locked;
-    b.textContent = locked ? `Следующий раунд (${secs})` : 'Следующий раунд';
+    b.textContent = locked ? `${t('nextRound')} (${secs})` : t('nextRound');
   }
   if (lastGame.phase === 'over' && lastGame.youAreHost) {
     const b = $('#rematch-btn');
     b.disabled = locked;
-    b.textContent = locked ? `Сыграть ещё (${secs})` : 'Сыграть ещё';
+    b.textContent = locked ? `${t('rematch')} (${secs})` : t('rematch');
   }
 }
 
@@ -367,8 +484,9 @@ function renderModals(g) {
   // итоги раунда
   const rm = $('#round-modal');
   if (g.phase === 'roundEnd' && g.roundResults) {
-    $('#round-title').textContent = `Раунд ${g.round} окончен`;
+    $('#round-title').textContent = lang === 'en' ? `Round ${g.round} over` : `Раунд ${g.round} окончен`;
     $('#round-results').innerHTML = resultsTable(g.roundResults);
+    $('#next-round-wait').textContent = t('waitHostShort');
     $('#next-round-btn').classList.toggle('hidden', !g.youAreHost);
     $('#next-round-wait').classList.toggle('hidden', g.youAreHost);
     rm.classList.remove('hidden');
@@ -379,8 +497,11 @@ function renderModals(g) {
   // конец партии
   const om = $('#over-modal');
   if (g.phase === 'over') {
-    $('#winner-line').innerHTML = `Победитель — <b>${esc(g.winner || '')}</b>`;
+    $('#over-title').textContent = t('gameOver');
+    $('#winner-line').innerHTML = `${t('winnerIs')} <b>${esc(g.winner || '')}</b>`;
     $('#over-results').innerHTML = g.roundResults ? resultsTable(g.roundResults) : '';
+    $('#rematch-wait').textContent = t('rematchWait');
+    $('#over-leave-btn').textContent = t('leaveToLobby');
     $('#rematch-btn').classList.toggle('hidden', !g.youAreHost);
     $('#rematch-wait').classList.toggle('hidden', g.youAreHost);
     om.classList.remove('hidden');
@@ -425,7 +546,7 @@ $('#suit-cancel').onclick = () => {
 // переключение вкладок входа
 document.querySelectorAll('.auth-tab').forEach(tab => {
   tab.onclick = () => {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-tab').forEach(el => el.classList.remove('active'));
     tab.classList.add('active');
     for (const name of ['guest', 'login', 'register']) {
       $('#tab-' + name).classList.toggle('hidden', name !== tab.dataset.tab);
@@ -436,7 +557,7 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
 
 function guestEnter() {
   const v = $('#name-input').value.trim();
-  if (!v) { authError('Введите имя'); return; }
+  if (!v) { authError(t('enterName')); return; }
   store.auth = '';           // играем как гость
   account = null;
   store.name = v;
@@ -449,7 +570,7 @@ $('#name-input').addEventListener('keydown', e => { if (e.key === 'Enter') guest
 function doLogin() {
   const login = $('#login-user').value.trim();
   const pass = $('#login-pass').value;
-  if (!login || !pass) { authError('Введите логин и пароль'); return; }
+  if (!login || !pass) { authError(t('needLoginPass')); return; }
   ensureConnected(() => sendMsg({ type: 'login', login, password: pass }));
 }
 $('#login-btn').onclick = doLogin;
@@ -459,7 +580,7 @@ function doRegister() {
   const login = $('#reg-user').value.trim();
   const name = $('#reg-name').value.trim();
   const pass = $('#reg-pass').value;
-  if (!login || !pass) { authError('Введите логин и пароль'); return; }
+  if (!login || !pass) { authError(t('needLoginPass')); return; }
   ensureConnected(() => sendMsg({ type: 'register', login, name, password: pass }));
 }
 $('#reg-btn').onclick = doRegister;
@@ -507,21 +628,21 @@ function renderAdminUsers(notice) {
 
   const box = $('#admin-users');
   const users = lastAdminUsers;
-  if (!users) { box.innerHTML = '<div class="muted">Загрузка…</div>'; return; }
-  if (!users.length) { box.innerHTML = '<div class="muted">Нет аккаунтов</div>'; return; }
+  if (!users) { box.innerHTML = `<div class="muted">${t('loading')}</div>`; return; }
+  if (!users.length) { box.innerHTML = `<div class="muted">${lang === 'en' ? 'No accounts' : 'Нет аккаунтов'}</div>`; return; }
   box.innerHTML = users.map(u => `
     <div class="admin-row" data-id="${u.id}">
       <div class="admin-fields">
-        <label>Логин<input class="au-login" type="text" maxlength="20" value="${esc(u.login)}"></label>
-        <label>Имя<input class="au-name" type="text" maxlength="20" value="${esc(u.name)}"></label>
-        <label>Новый пароль<input class="au-pass" type="text" maxlength="72" placeholder="оставить пустым"></label>
-        <label class="au-admin-lbl"><input class="au-admin" type="checkbox" ${u.isAdmin ? 'checked' : ''}> админ</label>
+        <label>${t('login')}<input class="au-login" type="text" maxlength="20" value="${esc(u.login)}"></label>
+        <label>${lang === 'en' ? 'Name' : 'Имя'}<input class="au-name" type="text" maxlength="20" value="${esc(u.name)}"></label>
+        <label>${t('newPass')}<input class="au-pass" type="text" maxlength="72" placeholder="${t('emptyKeep')}"></label>
+        <label class="au-admin-lbl"><input class="au-admin" type="checkbox" ${u.isAdmin ? 'checked' : ''}> ${t('adminFlag')}</label>
       </div>
       <div class="admin-meta">
-        <span class="muted">id ${u.id} · ${u.gamesWon} побед / ${u.gamesPlayed} партий</span>
+        <span class="muted">id ${u.id} · ${u.gamesWon} ${t('winsShort')} / ${u.gamesPlayed} ${t('gamesShort')}</span>
         <div class="admin-btns">
-          <button class="btn tiny au-save">Сохранить</button>
-          <button class="btn tiny ghost au-del">Удалить</button>
+          <button class="btn tiny au-save">${t('save')}</button>
+          <button class="btn tiny ghost au-del">${t('del')}</button>
         </div>
       </div>
     </div>`).join('');
@@ -539,7 +660,8 @@ function renderAdminUsers(notice) {
     };
     row.querySelector('.au-del').onclick = () => {
       const login = row.querySelector('.au-login').value.trim();
-      if (confirm(`Удалить аккаунт «${login}»? Это необратимо.`)) {
+      const msg = lang === 'en' ? `Delete account “${login}”? This cannot be undone.` : `Удалить аккаунт «${login}»? Это необратимо.`;
+      if (confirm(msg)) {
         sendMsg({ type: 'adminDeleteUser', auth: store.auth, id });
       }
     };
@@ -559,33 +681,33 @@ function renderCabinet() {
   $('#logout-btn').classList.toggle('hidden', !account);
   $('#admin-open').classList.toggle('hidden', !(account && account.isAdmin));
   if (!account) {
-    box.innerHTML = '<p class="muted">Вы играете как гость. Войдите в аккаунт, чтобы сохранять статистику и попадать в топ-100.</p>';
+    box.innerHTML = `<p class="muted">${t('guestCabinet')}</p>`;
     return;
   }
   const s = lastProfile;
-  if (!s) { box.innerHTML = '<p class="muted">Загрузка…</p>'; return; }
+  if (!s) { box.innerHTML = `<p class="muted">${t('loading')}</p>`; return; }
   box.innerHTML = `
     <div class="stat-name">${esc(s.name)} <span class="muted">@${esc(s.login)}</span></div>
     <div class="stat-grid">
-      <div class="stat"><div class="stat-val">#${s.rank}</div><div class="stat-lbl">место</div></div>
-      <div class="stat"><div class="stat-val">${s.gamesWon}</div><div class="stat-lbl">побед</div></div>
-      <div class="stat"><div class="stat-val">${s.gamesPlayed}</div><div class="stat-lbl">партий</div></div>
-      <div class="stat"><div class="stat-val">${s.winrate}%</div><div class="stat-lbl">винрейт</div></div>
-      <div class="stat"><div class="stat-val">${s.roundsWon}</div><div class="stat-lbl">раундов</div></div>
+      <div class="stat"><div class="stat-val">#${s.rank}</div><div class="stat-lbl">${t('rankL')}</div></div>
+      <div class="stat"><div class="stat-val">${s.gamesWon}</div><div class="stat-lbl">${t('winsL')}</div></div>
+      <div class="stat"><div class="stat-val">${s.gamesPlayed}</div><div class="stat-lbl">${t('gamesL')}</div></div>
+      <div class="stat"><div class="stat-val">${s.winrate}%</div><div class="stat-lbl">${t('winrateL')}</div></div>
+      <div class="stat"><div class="stat-val">${s.roundsWon}</div><div class="stat-lbl">${t('roundsL')}</div></div>
     </div>`;
 }
 
 function renderLeaderboard() {
   const box = $('#leaderboard');
   const rows = lastLeaderboard;
-  if (!rows) { box.innerHTML = '<div class="muted">Загрузка…</div>'; return; }
-  if (!rows.length) { box.innerHTML = '<div class="muted">Пока нет сыгранных партий</div>'; return; }
+  if (!rows) { box.innerHTML = `<div class="muted">${t('loading')}</div>`; return; }
+  if (!rows.length) { box.innerHTML = `<div class="muted">${t('noGames')}</div>`; return; }
   box.innerHTML = rows.map((r, i) => `
     <div class="lb-row${account && r.name === account.name ? ' me' : ''}">
       <span class="lb-rank">${i + 1}</span>
       <span class="lb-name">${esc(r.name)}</span>
-      <span class="lb-won">${r.games_won} побед</span>
-      <span class="lb-played muted">${r.games_played} партий</span>
+      <span class="lb-won">${r.games_won} ${t('winsShort')}</span>
+      <span class="lb-played muted">${r.games_played} ${t('gamesShort')}</span>
     </div>`).join('');
 }
 
@@ -593,15 +715,18 @@ $('#create-btn').onclick = () => sendMsg({ type: 'createTable', name: $('#table-
 $('#join-code-btn').onclick = () => {
   const c = $('#join-code-input').value.trim().toUpperCase();
   if (c.length === 4) sendMsg({ type: 'joinTable', id: c });
-  else toast('Код стола — 4 символа');
+  else toast(t('code4'));
 };
 $('#join-code-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('#join-code-btn').click(); });
 
 $('#start-btn').onclick = () => sendMsg({ type: 'startGame' });
+$('#add-bot-btn').onclick = () => sendMsg({ type: 'addBot' });
+$('#remove-bot-btn').onclick = () => sendMsg({ type: 'removeBot' });
 $('#leave-btn').onclick = () => sendMsg({ type: 'leaveTable' });
 $('#g-leave').onclick = () => {
   if (lastGame && lastGame.phase === 'playing') {
-    if (!confirm('Выйти из идущей игры? Вы выбудете из партии.')) return;
+    const msg = lang === 'en' ? 'Leave the ongoing game? You will drop out of the match.' : 'Выйти из идущей игры? Вы выбудете из партии.';
+    if (!confirm(msg)) return;
   }
   lastGame = null;
   sendMsg({ type: 'leaveTable' });
@@ -675,13 +800,13 @@ function playTurnChime() {
   if (!audioCtx) return;
   const now = audioCtx.currentTime;
   const notes = [[880, 0], [1174.66, 0.12]]; // A5 → D6, короткий приятный сигнал
-  for (const [freq, t] of notes) {
+  for (const [freq, dt] of notes) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
     osc.connect(gain); gain.connect(audioCtx.destination);
-    const s = now + t;
+    const s = now + dt;
     gain.gain.setValueAtTime(0.0001, s);
     gain.gain.exponentialRampToValueAtTime(0.22, s + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, s + 0.25);
@@ -726,7 +851,11 @@ function maybePlayWhip(g) {
 
 function refreshSoundBtn() {
   const b = $('#g-sound');
-  if (b) { b.textContent = soundOn ? '🔔' : '🔕'; b.title = soundOn ? 'Звук хода: вкл' : 'Звук хода: выкл'; }
+  if (!b) return;
+  b.textContent = soundOn ? '🔔' : '🔕';
+  const on = lang === 'en' ? 'on' : 'вкл';
+  const off = lang === 'en' ? 'off' : 'выкл';
+  b.title = `${t('sound')}: ${soundOn ? on : off}`;
 }
 $('#g-sound').onclick = () => {
   soundOn = !soundOn;
@@ -737,6 +866,9 @@ $('#g-sound').onclick = () => {
 refreshSoundBtn();
 
 // ---------- старт ----------
+
+$('#lang-toggle').onclick = () => setLang(lang === 'ru' ? 'en' : 'ru');
+applyStaticI18n();
 
 const buildTag = $('#build-tag');
 if (buildTag) buildTag.textContent = 'build ' + BUILD;

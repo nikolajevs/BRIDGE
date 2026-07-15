@@ -371,6 +371,51 @@ class Game {
     }
   }
 
+  // Один «умный» шаг бота: играет карту, чтобы избавляться от руки; при
+  // необходимости добирает и накрывает шестёрку. Вызывается по одному действию
+  // за раз (с задержкой между вызовами на стороне сервера).
+  botStep(i) {
+    if (this.phase !== 'playing' || this.turn !== i) return;
+    const p = this.players[i];
+
+    // цепочка восьмёрок: кладём восьмёрку (сюда попадаем только если она есть)
+    if (this.pendingDraw > 0) {
+      const e = p.hand.find(c => c.r === '8');
+      if (e) { this.playCard(p.token, e.id); return; }
+      return;
+    }
+
+    // все карты — валеты (2+): дампим и выигрываем с множителем
+    if (!this.mustCoverSix && !this.drawnCardId
+        && p.hand.length >= 2 && p.hand.every(c => c.r === 'J')) {
+      this.dumpJacks(p.token, this._autoSuit(p));
+      return;
+    }
+
+    // накрыть свою шестёрку
+    if (this.mustCoverSix) {
+      const cover = p.hand.find(c => c.r !== '6' && this.canPlayCard(c))
+        || p.hand.find(c => this.canPlayCard(c));
+      if (cover) this.playCard(p.token, cover.id, cover.r === 'J' ? this._autoSuit(p) : undefined);
+      else this.drawCard(p.token); // тянем к накрытию, следующий шаг доиграет
+      return;
+    }
+
+    const playable = p.hand.filter(c => this.canPlayCard(c));
+    if (playable.length) {
+      // приберегаем универсалки (9/валет): сначала играем обычные карты
+      const plain = playable.filter(c => c.r !== '9' && c.r !== 'J');
+      const pool = plain.length ? plain : playable;
+      // среди доступных сбрасываем самую «дорогую» (чтобы не остаться с ней при проигрыше)
+      const pick = pool.slice().sort((a, b) => points(b) - points(a))[0];
+      this.playCard(p.token, pick.id, pick.r === 'J' ? this._autoSuit(p) : undefined);
+    } else if (!this.drawnCardId) {
+      this.drawCard(p.token); // взять карту; следующий шаг сыграет её или спасует
+    } else {
+      this.endTurn(p.token);  // нечем — пас
+    }
+  }
+
   resign(token) {
     const i = this.idxOf(token);
     const p = this.players[i];

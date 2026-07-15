@@ -59,7 +59,7 @@ body {
 .btn.tiny { padding: 5px 10px; font-size: 13px; }
 .btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-input[type="text"] {
+input[type="text"], input[type="password"] {
   font-family: var(--body);
   font-size: 16px;
   padding: 10px 12px;
@@ -261,7 +261,7 @@ input::placeholder { color: #6e5b49; }
 .admin-row { background: #1a110d; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .admin-fields { display: flex; flex-wrap: wrap; gap: 10px; }
 .admin-fields label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; flex: 1 1 130px; }
-.admin-fields input[type="text"] { font-size: 14px; padding: 7px 9px; }
+.admin-fields input[type="text"], .admin-fields input[type="password"] { font-size: 14px; padding: 7px 9px; }
 .au-admin-lbl { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; align-self: flex-end; color: #e8ddcc; }
 .au-admin-lbl input { width: auto; }
 .admin-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
@@ -279,7 +279,7 @@ input::placeholder { color: #6e5b49; }
 }
 .opp-cards .more { font-size: 12px; color: var(--muted); align-self: center; }
 .opp-score { font-family: var(--mono); font-size: 13px; color: var(--muted); }
-.opp.out .opp-score::after { content: ' · выбыл'; }
+.opp.out .opp-score { }
 
 /* сукно */
 .felt { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 170px; }
@@ -456,3 +456,11 @@ input::placeholder { color: #6e5b49; }
 }
 
 .build-tag { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: #6e5b49; }
+.lang-toggle {
+  position: fixed; top: 10px; right: 12px; z-index: 50;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+  padding: 5px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--muted); cursor: pointer;
+}
+.lang-toggle:hover { color: var(--accent); border-color: var(--accent-dim); }
+.tag.bot { background: #2a2340; color: #b7a8e0; border-color: #4a3f6b; }
