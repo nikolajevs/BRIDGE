@@ -468,7 +468,7 @@ input::placeholder { color: #6e5b49; }
 
 .footer-links {
   margin: 16px 0 0;
-  display: flex; align-items: center; justify-content: center; gap: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
 }
 .donate-link {
   font-size: 13px; color: var(--muted); text-decoration: none;
