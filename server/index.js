@@ -198,6 +198,30 @@ function broadcastGame(t) {
     send(rec.ws, st);
   }
   scheduleBot(t);
+  scheduleAutoNextRound(t);
+}
+
+const AUTO_NEXT_MS = Number(process.env.AUTO_NEXT_MS) || 7000; // столько же держится таблица итогов на клиенте
+
+// Выбывший хост больше не играет, но именно от него ждут «Следующий раунд» —
+// он мог бы заблокировать партию остальным. В этом случае запускаем раунд сами,
+// дав ту же паузу на чтение итогов.
+function scheduleAutoNextRound(t) {
+  if (!t.game || t.game.phase !== 'roundEnd') {
+    if (t.autoNextTimer) { clearTimeout(t.autoNextTimer); t.autoNextTimer = null; }
+    return;
+  }
+  const host = t.game.players.find(p => p.token === t.host);
+  if (!host || !host.eliminated) return;   // хост в игре — ждём его решения
+  if (t.autoNextTimer) return;             // уже запланировано
+  t.autoNextTimer = setTimeout(() => {
+    t.autoNextTimer = null;
+    if (!t.game || t.game.phase !== 'roundEnd') return;
+    try { t.game.nextRound(); } catch (e) { return; }
+    t.game.addLog('Создатель стола выбыл — следующий раунд начат автоматически');
+    t.lastActive = Date.now();
+    broadcastGame(t);
+  }, AUTO_NEXT_MS);
 }
 
 // Если ход за ботом — через небольшую задержку делаем один его шаг и снова
@@ -258,6 +282,7 @@ function removeSeat(t, token) {
   if (humans.length === 0) {
     if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
     if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+    if (t.autoNextTimer) { clearTimeout(t.autoNextTimer); t.autoNextTimer = null; }
     deleteTableBots(t);
     tables.delete(t.id);
     return;
@@ -583,6 +608,7 @@ const CLEANUP_MS = Number(process.env.CLEANUP_MS) || 30 * 1000;                 
 function closeTable(t, notice) {
   if (t.turnTimer) { clearTimeout(t.turnTimer); t.turnTimer = null; }
   if (t.botTimer) { clearTimeout(t.botTimer); t.botTimer = null; }
+  if (t.autoNextTimer) { clearTimeout(t.autoNextTimer); t.autoNextTimer = null; }
   const sockets = [];
   for (const tok of t.seats) {
     const r = byToken.get(tok);
