@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'i18n-bot-2026-07-14';
+const BUILD = 'final-table-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
@@ -40,6 +40,8 @@ const I18N = {
     jackChoose: 'Валет: закажите масть', cancel: 'Отмена',
     nextRound: 'Следующий раунд', waitHostShort: 'Ждём создателя стола…',
     gameOver: 'Партия окончена', winnerIs: 'Победитель —', rematch: 'Сыграть ещё',
+    playerCol: 'Игрок', scoreCol: 'Очки', roundsCol: 'Раунды',
+    winnerNote: 'победитель', outNote: 'выбыл',
     rematchWait: 'Создатель стола может начать новую партию', leaveToLobby: 'Выйти в лобби',
     youDeal: 'вы раздаёте', youOut: 'вы выбыли', lastCard: 'последняя карта!',
     chatPh: 'Сообщение столу…', enterName: 'Введите имя', code4: 'Код стола — 4 символа',
@@ -78,6 +80,8 @@ const I18N = {
     jackChoose: 'Jack: choose a suit', cancel: 'Cancel',
     nextRound: 'Next round', waitHostShort: 'Waiting for the host…',
     gameOver: 'Game over', winnerIs: 'Winner —', rematch: 'Play again',
+    playerCol: 'Player', scoreCol: 'Score', roundsCol: 'Rounds',
+    winnerNote: 'winner', outNote: 'out',
     rematchWait: 'The host can start a new game', leaveToLobby: 'Back to lobby',
     youDeal: 'you deal', youOut: 'you are out', lastCard: 'last card!',
     chatPh: 'Message to the table…', enterName: 'Enter a name', code4: 'Table code is 4 characters',
@@ -441,6 +445,22 @@ function renderLog(g) {
   log.scrollTop = log.scrollHeight;
 }
 
+function finalTable(rows) {
+  const head = `<tr class="hrow">
+      <th class="num">#</th><th>${t('playerCol')}</th>
+      <th class="num">${t('scoreCol')}</th><th class="num">${t('roundsCol')}</th><th></th>
+    </tr>`;
+  const body = rows.map((r, i) => `
+    <tr class="${r.winner ? 'win' : ''}${r.eliminated ? ' out' : ''}">
+      <td class="num">${i + 1}</td>
+      <td>${r.winner ? '★ ' : ''}${esc(r.name)}${r.isBot ? ` <span class="tag bot">${t('bot')}</span>` : ''}</td>
+      <td class="num"><b>${r.score}</b></td>
+      <td class="num">${r.roundsWon}</td>
+      <td class="note">${r.winner ? t('winnerNote') : (r.eliminated ? t('outNote') : '')}</td>
+    </tr>`).join('');
+  return head + body;
+}
+
 function resultsTable(rows) {
   return rows.map(r => `
     <tr class="${r.winner ? 'win' : ''}">
@@ -499,7 +519,9 @@ function renderModals(g) {
   if (g.phase === 'over') {
     $('#over-title').textContent = t('gameOver');
     $('#winner-line').innerHTML = `${t('winnerIs')} <b>${esc(g.winner || '')}</b>`;
-    $('#over-results').innerHTML = g.roundResults ? resultsTable(g.roundResults) : '';
+    $('#over-results').innerHTML = g.finalResults
+      ? finalTable(g.finalResults)
+      : (g.roundResults ? resultsTable(g.roundResults) : '');
     $('#rematch-wait').textContent = t('rematchWait');
     $('#over-leave-btn').textContent = t('leaveToLobby');
     $('#rematch-btn').classList.toggle('hidden', !g.youAreHost);

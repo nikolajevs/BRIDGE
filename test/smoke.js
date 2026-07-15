@@ -309,6 +309,50 @@ ok('бот делает ход и передаёт очередь', () => {
   assert(g.turn !== who || g.drawnCardId || g.phase !== 'playing', 'бот совершил действие');
 });
 
+ok('партия кончается, когда людей не осталось (одни боты)', () => {
+  // 1 человек + 2 бота
+  const g = new Game([
+    { token: 'h', name: 'Человек' },
+    { token: 'b1', name: 'Бот 1', isBot: true },
+    { token: 'b2', name: 'Бот 2', isBot: true },
+  ]);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  // раунд выигрывает бот, человек перебирает 125 и выбывает
+  const wIdx = g.players.findIndex(p => p.token === 'b1');
+  g.turn = wIdx;
+  g.players[wIdx].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  const h = g.players.find(p => p.token === 'h');
+  h.score = 120;
+  h.hand = [{ r: 'A', s: '♥', id: 'A♥' }, { r: 'A', s: '♦', id: 'A♦' }]; // 30 → 150 > 125
+  const b2 = g.players.find(p => p.token === 'b2');
+  b2.hand = [{ r: '6', s: '♥', id: '6♥' }]; // 0 очков
+  g.playCard(g.players[wIdx].token, '10♠');
+  assert(h.eliminated, 'человек выбыл');
+  assert.strictEqual(g.phase, 'over', 'партия завершена, хотя два бота ещё активны');
+});
+
+ok('итоговая таблица строится при конце партии', () => {
+  const g = freshGame(2);
+  force(g, { top: { r: '7', s: '♠' } });
+  g.mustCoverSix = false;
+  g.pendingSeven = g.pendingQueen = g.pendingSkip = false;
+  const who = g.turn;
+  const other = g.nextActiveIdx(who);
+  g.players[who].hand = [{ r: '10', s: '♠', id: '10♠' }];
+  g.players[other].score = 120;
+  g.players[other].hand = [{ r: 'A', s: '♥', id: 'A♥' }, { r: 'A', s: '♦', id: 'A♦' }]; // 30 → выбывает
+  g.playCard(g.players[who].token, '10♠');
+  assert.strictEqual(g.phase, 'over');
+  const fr = g.finalResults;
+  assert(Array.isArray(fr) && fr.length === 2, 'таблица со всеми игроками');
+  assert(fr[0].winner, 'победитель первым');
+  assert.strictEqual(fr[0].name, g.winner);
+  assert(fr[1].eliminated, 'выбывший ниже');
+  assert(typeof fr[0].roundsWon === 'number', 'есть выигранные раунды');
+});
+
 ok('дамп двух валетов последними картами — ×3', () => {
   const g = freshGame(2);
   force(g, { top: { r: '7', s: '♠' } });

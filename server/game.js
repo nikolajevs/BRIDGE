@@ -58,7 +58,7 @@ class Game {
   constructor(seats) {
     if (seats.length < 2 || seats.length > 6) throw new Error('Нужно от 2 до 6 игроков');
     this.players = seats.map(p => ({
-      token: p.token, name: p.name,
+      token: p.token, name: p.name, isBot: !!p.isBot,
       hand: [], score: 0, eliminated: false, connected: true,
     }));
     this.dealer = Math.floor(Math.random() * this.players.length);
@@ -69,6 +69,7 @@ class Game {
     this.winner = null;
     this.winnerToken = null;
     this.roundResults = null;
+    this.finalResults = null;
     this.startRound();
   }
 
@@ -221,10 +222,7 @@ class Game {
 
     // 4 короля подряд — мгновенная победа во всей партии
     if (this.kingStreak >= 4) {
-      this.phase = 'over';
-      this.winner = p.name;
-      this.winnerToken = p.token;
-      this.addLog(`Четыре короля подряд! ${p.name} выигрывает всю партию!`);
+      this.endMatch(p, `Четыре короля подряд! ${p.name} выигрывает всю партию!`);
       return;
     }
 
@@ -416,6 +414,27 @@ class Game {
     }
   }
 
+  // Завершить партию: зафиксировать победителя и построить итоговую таблицу.
+  // Порядок: победитель, затем оставшиеся по возрастанию очков, выбывшие — в конце.
+  endMatch(winnerPlayer, logLine) {
+    this.phase = 'over';
+    this.winner = winnerPlayer.name;
+    this.winnerToken = winnerPlayer.token;
+    this.addLog(logLine || `${winnerPlayer.name} — победитель партии!`);
+    this.finalResults = this.players.map(p => ({
+      name: p.name,
+      score: p.score,
+      roundsWon: this.roundsWonByToken[p.token] || 0,
+      eliminated: p.eliminated,
+      isBot: p.isBot,
+      winner: p.token === winnerPlayer.token,
+    })).sort((a, b) => {
+      if (a.winner !== b.winner) return a.winner ? -1 : 1;
+      if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+      return a.score - b.score;
+    });
+  }
+
   resign(token) {
     const i = this.idxOf(token);
     const p = this.players[i];
@@ -424,10 +443,7 @@ class Game {
     this.addLog(`${p.name} покидает игру`);
     const act = this.activePlayers();
     if (act.length === 1) {
-      this.phase = 'over';
-      this.winner = act[0].name;
-      this.winnerToken = act[0].token;
-      this.addLog(`${act[0].name} — победитель партии!`);
+      this.endMatch(act[0]);
       return;
     }
     if (this.phase === 'playing' && this.turn === i) {
@@ -534,11 +550,15 @@ class Game {
     this.roundResults = results;
 
     const act = this.activePlayers();
+    const humansLeft = act.filter(p => !p.isBot);
     if (act.length === 1) {
-      this.phase = 'over';
-      this.winner = act[0].name;
-      this.winnerToken = act[0].token;
-      this.addLog(`${act[0].name} — победитель партии!`);
+      this.endMatch(act[0]);
+    } else if (humansLeft.length === 0) {
+      // за столом остались одни боты — продолжать партию незачем;
+      // побеждает бот с наименьшим счётом
+      const best = act.slice().sort((a, b) => a.score - b.score)[0];
+      this.addLog('Живых игроков не осталось — партия завершена');
+      this.endMatch(best);
     } else {
       this.phase = 'roundEnd';
     }
@@ -589,6 +609,7 @@ class Game {
         && me.hand.every(c => c.r === 'J'),
       log: this.log.slice(-60),
       roundResults: this.roundResults,
+      finalResults: this.finalResults,
       winner: this.winner,
     };
   }

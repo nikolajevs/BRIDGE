@@ -472,7 +472,7 @@ function handle(ws, m) {
       if (t.game && t.game.phase === 'over' && t.resultsAt && Date.now() - t.resultsAt < 6500) {
         throw new Error('Дайте всем прочитать итоги партии');
       }
-      const seats = t.seats.map(x => ({ token: x, name: byToken.get(x).name }));
+      const seats = t.seats.map(x => ({ token: x, name: byToken.get(x).name, isBot: !!byToken.get(x).isBot }));
       t.game = new Game(seats);
       t.recorded = false;
       t.lastActive = Date.now();

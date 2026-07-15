@@ -425,6 +425,14 @@ input::placeholder { color: #6e5b49; }
 .results td.num { text-align: right; }
 .results tr.win td { color: var(--accent); }
 .results .note { color: var(--muted); font-size: 12px; }
+.results th {
+  padding: 6px 8px; text-align: left; font-weight: 400; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.results th.num { text-align: right; }
+.results tr.out td { color: #8a7a6b; }
+.results tr.out td b { color: #f0a08b; }
 .winner-line { font-size: 18px; }
 .winner-line b { color: var(--accent); }
 .modal-actions { justify-content: center; }
