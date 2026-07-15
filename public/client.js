@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'timer-move-2026-07-15';
+const BUILD = 'rules-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -53,6 +53,7 @@ const I18N = {
     emptyKeep: 'оставить пустым', adminFlag: 'админ', backCabinet: '← В кабинет',
     reconnecting: 'Переподключение…',
     donate: '♥ Поддержать проект',
+    rulesLink: 'Правила игры', rulesTitle: 'Правила игры', close: 'Закрыть',
   },
   en: {
     tagline: 'card game at a shared table · 2–6 players',
@@ -94,6 +95,7 @@ const I18N = {
     emptyKeep: 'leave empty', adminFlag: 'admin', backCabinet: '← To profile',
     reconnecting: 'Reconnecting…',
     donate: '♥ Support the project',
+    rulesLink: 'Game rules', rulesTitle: 'Game rules', close: 'Close',
   },
 };
 
@@ -117,9 +119,72 @@ function setLang(l) {
   localStorage.setItem('g125_lang', lang);
   applyStaticI18n();
   if (typeof refreshSoundBtn === 'function') refreshSoundBtn();
+  const rm = $('#rules-modal');
+  if (rm && !rm.classList.contains('hidden')) $('#rules-body').innerHTML = RULES_HTML[lang];
   if (lastGame) renderGame(lastGame);
   if (lastLobby) renderLobby(lastLobby);
 }
+
+// Текст правил для всплывающего окна (свой доверенный HTML, вставляется как innerHTML)
+const RULES_HTML = {
+  ru: `
+    <h4>Основное</h4>
+    <ul>
+      <li>Колода 36 карт, от 2 до 6 игроков. Раздача: всем по 5 карт, дилеру 4 — его пятая карта уходит вслепую первой на стол. Ходят по часовой стрелке.</li>
+      <li><b>Ход:</b> карта <b>той же масти</b> (любого достоинства) либо карта <b>того же достоинства</b> любой масти.</li>
+      <li>Нечем ходить — берёшь карту из прикупа. После добора можно сыграть любую подходящую карту или спасовать.</li>
+      <li>Прикуп кончился — сброс тасуется заново.</li>
+      <li>На ход даётся <b>30 секунд</b>. Не успел — за тебя берётся карта из прикупа и ход пасуется.</li>
+    </ul>
+
+    <h4>Особые карты</h4>
+    <table class="rules-cards">
+      <tr><td class="rc">6</td><td>Ходом нельзя закончить — накрой её сам (та же масть, девятка или валет). Другая шестёрка меняет масть, но ход не закрывает. Нечем накрыть — тяни из прикупа.</td></tr>
+      <tr><td class="rc">7</td><td>Следующий берёт 1 карту и ходит.</td></tr>
+      <tr><td class="rc">8</td><td>Следующий берёт 2 карты и пропускает ход. Но если у него есть восьмёрка — обязан её положить: штраф растёт на +2 и переходит дальше. В цепочке восьмёрок девятка и валет не работают.</td></tr>
+      <tr><td class="rc">9</td><td>Кладётся на любую карту. Девятку можно крыть девяткой. За ход — только одна.</td></tr>
+      <tr><td class="rc">В</td><td>Кладётся на любую карту, игрок заказывает масть. Если раунд выигран валетом, очки проигравших умножаются: свой валет — ×2. Все свои валеты можно скинуть за один ход, если это последние карты: два — ×3, три — ×4. Валеты разных игроков не суммируются.</td></tr>
+      <tr><td class="rc red">Д♠</td><td>Дама пик: следующий берёт 5 карт и пропускает ход.</td></tr>
+      <tr><td class="rc">К</td><td>Четыре короля подряд — положивший четвёртого мгновенно выигрывает всю партию.</td></tr>
+      <tr><td class="rc">Т</td><td>Следующий пропускает ход, отбиться нельзя. В игре 1×1 ход возвращается — тузы можно скидывать подряд.</td></tr>
+    </table>
+
+    <h4>Счёт</h4>
+    <ul>
+      <li>Раунд выигрывает тот, кто первым избавился от карт. Остальным начисляются очки за карты на руках: <b>6, 7, 8, 9 — 0</b>; <b>туз — 15</b>; <b>10, валет, дама, король — 10</b>.</li>
+      <li>Пока счёт не открыт, раунд записывается только если набрано <b>30 и более</b> очков. Меньше — счёт не открывается. После открытия считаются все раунды подряд.</li>
+      <li>Ровно <b>125</b> — счёт обнуляется (и снова закрывается). Больше 125 — игрок выбывает. Играют до последнего.</li>
+    </ul>`,
+  en: `
+    <h4>Basics</h4>
+    <ul>
+      <li>36-card deck, 2 to 6 players. Deal: 5 cards each, 4 to the dealer — the dealer's fifth card goes face-up to the table first. Play proceeds clockwise.</li>
+      <li><b>A move:</b> a card of the <b>same suit</b> (any rank) or a card of the <b>same rank</b> (any suit).</li>
+      <li>Nothing to play — draw a card from the deck. After drawing you may play any matching card or pass.</li>
+      <li>When the deck runs out, the discard pile is reshuffled.</li>
+      <li>You get <b>30 seconds</b> per turn. Miss it and a card is drawn for you and the turn is passed.</li>
+    </ul>
+
+    <h4>Special cards</h4>
+    <p class="rules-note">Cards show Russian letters: <b>В</b> = Jack, <b>Д</b> = Queen, <b>К</b> = King, <b>Т</b> = Ace.</p>
+    <table class="rules-cards">
+      <tr><td class="rc">6</td><td>You cannot end your turn on it — cover it yourself (same suit, a nine or a jack). Another six changes the suit but does not close the turn. Nothing to cover with — keep drawing.</td></tr>
+      <tr><td class="rc">7</td><td>The next player draws 1 card and plays.</td></tr>
+      <tr><td class="rc">8</td><td>The next player draws 2 cards and misses a turn. But if they hold an eight they must play it: the penalty grows by +2 and passes on. Nines and jacks do not work inside an eight chain.</td></tr>
+      <tr><td class="rc">9</td><td>Plays on any card. A nine can be covered by a nine. Only one per turn.</td></tr>
+      <tr><td class="rc">В</td><td>Jack: plays on any card, the player names a suit. Winning a round with a jack multiplies the losers' points: your own jack — ×2. You may dump all your jacks in one move if they are your last cards: two — ×3, three — ×4. Jacks from different players do not stack.</td></tr>
+      <tr><td class="rc red">Д♠</td><td>Queen of spades: the next player draws 5 cards and misses a turn.</td></tr>
+      <tr><td class="rc">К</td><td>Four kings in a row — whoever plays the fourth instantly wins the whole match.</td></tr>
+      <tr><td class="rc">Т</td><td>Ace: the next player misses a turn, no defence. In a 1×1 game the turn returns — aces can be played one after another.</td></tr>
+    </table>
+
+    <h4>Scoring</h4>
+    <ul>
+      <li>The round goes to whoever runs out of cards first. Everyone else scores for the cards still in hand: <b>6, 7, 8, 9 — 0</b>; <b>ace — 15</b>; <b>10, jack, queen, king — 10</b>.</li>
+      <li>Until your score is open, a round only counts if it is <b>30 or more</b> points. Less than that does not open your score. Once open, every round counts.</li>
+      <li>Exactly <b>125</b> resets your score to zero (and closes it again). Over 125 — you are out. Play continues to the last player standing.</li>
+    </ul>`,
+};
 
 const store = {
   get token() { return localStorage.getItem('g125_token') || ''; },
@@ -897,6 +962,22 @@ refreshSoundBtn();
 $('#lang-toggle').onclick = () => setLang(lang === 'ru' ? 'en' : 'ru');
 applyStaticI18n();
 document.querySelectorAll('.donate-link').forEach(a => { a.href = DONATE_URL; });
+
+// ---------- окно с правилами ----------
+
+function openRules() {
+  $('#rules-body').innerHTML = RULES_HTML[lang] || RULES_HTML.ru;
+  $('#rules-modal').classList.remove('hidden');
+}
+function closeRules() { $('#rules-modal').classList.add('hidden'); }
+
+$('#rules-link').onclick = (e) => { e.preventDefault(); openRules(); };
+$('#rules-close').onclick = closeRules;
+// клик по затемнению и Esc — тоже закрывают
+$('#rules-modal').onclick = (e) => { if (e.target === $('#rules-modal')) closeRules(); };
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#rules-modal').classList.contains('hidden')) closeRules();
+});
 
 const buildTag = $('#build-tag');
 if (buildTag) buildTag.textContent = 'build ' + BUILD;
