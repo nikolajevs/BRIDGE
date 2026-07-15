@@ -522,7 +522,7 @@ function handle(ws, m) {
     case 'dumpJacks': {
       const t = tableOf(token);
       if (!t || !t.game) throw new Error('Игра не идёт');
-      t.game.dumpJacks(token, m.suit);
+      t.game.dumpJacks(token);
       t.lastActive = Date.now();
       broadcastGame(t);
       if (t.game.phase === 'over') broadcastTable(t);

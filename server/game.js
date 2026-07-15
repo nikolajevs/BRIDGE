@@ -208,16 +208,21 @@ class Game {
       throw new Error('Идёт цепочка восьмёрок — ответить можно только восьмёркой');
     }
     if (!this.canPlayCard(card)) throw new Error('Эту карту сейчас нельзя положить');
-    if (card.r === 'J' && !SUITS.includes(chosenSuit)) throw new Error('Выберите масть для валета');
+    // Валет заказывает масть — но если он последняя карта, раунд на нём и
+    // закончится: заказывать нечего и спрашивать незачем.
+    const jackEndsRound = card.r === 'J' && p.hand.length === 1;
+    if (card.r === 'J' && !jackEndsRound && !SUITS.includes(chosenSuit)) {
+      throw new Error('Выберите масть для валета');
+    }
 
     p.hand.splice(ci, 1);
     this.discard.push(card);
     this.drawnCardId = null;
     this.kingStreak = (card.r === 'K') ? this.kingStreak + 1 : 0;
-    this.jackSuit = (card.r === 'J') ? chosenSuit : null;
+    this.jackSuit = (card.r === 'J' && !jackEndsRound) ? chosenSuit : null;
 
     let msg = `${p.name} кладёт ${cardName(card)}`;
-    if (card.r === 'J') msg += ` и заказывает ${chosenSuit}`;
+    if (card.r === 'J' && !jackEndsRound) msg += ` и заказывает ${chosenSuit}`;
     this.addLog(msg);
 
     // 4 короля подряд — мгновенная победа во всей партии
@@ -251,7 +256,9 @@ class Game {
 
   // Скинуть все свои валеты за один ход — только если это последние карты.
   // Множитель очков проигравших = число валетов + 1 (2 валета → ×3, и т.д.).
-  dumpJacks(token, chosenSuit) {
+  // Скинуть все свои валеты разом. Возможно только если валеты — последние
+  // карты, поэтому раунд всегда заканчивается здесь же и масть не заказывается.
+  dumpJacks(token) {
     const i = this.idxOf(token);
     this.assertTurn(i);
     const p = this.players[i];
@@ -262,15 +269,14 @@ class Game {
     if (jacks.length !== p.hand.length) {
       throw new Error('Скинуть все валеты можно, только если это ваши последние карты');
     }
-    if (!SUITS.includes(chosenSuit)) throw new Error('Выберите масть для валета');
 
     for (const c of jacks) this.discard.push(c);
     p.hand = [];
     this.mustCoverSix = false;   // валеты накрывают лежащую шестёрку
     this.kingStreak = 0;
-    this.jackSuit = chosenSuit;
+    this.jackSuit = null;
     this.drawnCardId = null;
-    this.addLog(`${p.name} скидывает ${jacks.length} валета и заказывает ${chosenSuit}`);
+    this.addLog(`${p.name} скидывает ${jacks.length} валета и выигрывает раунд`);
     this.finishRound(i, jacks.length + 1);
   }
 
@@ -386,7 +392,7 @@ class Game {
     // все карты — валеты (2+): дампим и выигрываем с множителем
     if (!this.mustCoverSix && !this.drawnCardId
         && p.hand.length >= 2 && p.hand.every(c => c.r === 'J')) {
-      this.dumpJacks(p.token, this._autoSuit(p));
+      this.dumpJacks(p.token);
       return;
     }
 

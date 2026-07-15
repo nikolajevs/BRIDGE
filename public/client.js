@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'telegram-2026-07-15';
+const BUILD = 'jack-suit-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -143,7 +143,7 @@ const RULES_HTML = {
       <tr><td class="rc">7</td><td>Следующий берёт 1 карту и ходит.</td></tr>
       <tr><td class="rc">8</td><td>Следующий берёт 2 карты и пропускает ход. Но если у него есть восьмёрка — обязан её положить: штраф растёт на +2 и переходит дальше. В цепочке восьмёрок девятка и валет не работают.</td></tr>
       <tr><td class="rc">9</td><td>Кладётся на любую карту. Девятку можно крыть девяткой. За ход — только одна.</td></tr>
-      <tr><td class="rc">В</td><td>Кладётся на любую карту, игрок заказывает масть. Если раунд выигран валетом, очки проигравших умножаются: свой валет — ×2. Все свои валеты можно скинуть за один ход, если это последние карты: два — ×3, три — ×4. Валеты разных игроков не суммируются.</td></tr>
+      <tr><td class="rc">В</td><td>Кладётся на любую карту, игрок заказывает масть (если валет последняя карта, раунд на нём и кончается — масть не заказывается). Если раунд выигран валетом, очки проигравших умножаются: свой валет — ×2. Все свои валеты можно скинуть за один ход, если это последние карты: два — ×3, три — ×4. Валеты разных игроков не суммируются.</td></tr>
       <tr><td class="rc red">Д♠</td><td>Дама пик: следующий берёт 5 карт и пропускает ход.</td></tr>
       <tr><td class="rc">К</td><td>Четыре короля подряд — положивший четвёртого мгновенно выигрывает всю партию.</td></tr>
       <tr><td class="rc">Т</td><td>Следующий пропускает ход, отбиться нельзя. В игре 1×1 ход возвращается — тузы можно скидывать подряд.</td></tr>
@@ -172,7 +172,7 @@ const RULES_HTML = {
       <tr><td class="rc">7</td><td>The next player draws 1 card and plays.</td></tr>
       <tr><td class="rc">8</td><td>The next player draws 2 cards and misses a turn. But if they hold an eight they must play it: the penalty grows by +2 and passes on. Nines and jacks do not work inside an eight chain.</td></tr>
       <tr><td class="rc">9</td><td>Plays on any card. A nine can be covered by a nine. Only one per turn.</td></tr>
-      <tr><td class="rc">В</td><td>Jack: plays on any card, the player names a suit. Winning a round with a jack multiplies the losers' points: your own jack — ×2. You may dump all your jacks in one move if they are your last cards: two — ×3, three — ×4. Jacks from different players do not stack.</td></tr>
+      <tr><td class="rc">В</td><td>Jack: plays on any card, the player names a suit (if the jack is your last card the round ends on it, so no suit is named). Winning a round with a jack multiplies the losers' points: your own jack — ×2. You may dump all your jacks in one move if they are your last cards: two — ×3, three — ×4. Jacks from different players do not stack.</td></tr>
       <tr><td class="rc red">Д♠</td><td>Queen of spades: the next player draws 5 cards and misses a turn.</td></tr>
       <tr><td class="rc">К</td><td>Four kings in a row — whoever plays the fourth instantly wins the whole match.</td></tr>
       <tr><td class="rc">Т</td><td>Ace: the next player misses a turn, no defence. In a 1×1 game the turn returns — aces can be played one after another.</td></tr>
@@ -474,7 +474,8 @@ function renderGame(g) {
     el.onclick = () => {
       const id = el.dataset.id;
       const card = g.hand.find(x => x.id === id);
-      if (card && card.r === 'J') openSuitModal(id);
+      // валет последней картой заканчивает раунд — заказывать масть не для кого
+      if (card && card.r === 'J' && g.hand.length > 1) openSuitModal(id);
       else sendMsg({ type: 'playCard', cardId: id });
     };
   });
@@ -605,31 +606,23 @@ function renderModals(g) {
 }
 
 // ---------- выбор масти ----------
+// Нужен только когда после валета игра продолжается: если валет последняя
+// карта (или скидываются все валеты), раунд заканчивается и масть не заказывается.
 
 let suitCardId = null;
-let suitMode = 'play';           // 'play' — обычный валет, 'dump' — скинуть все валеты
 function openSuitModal(cardId) {
-  suitMode = 'play';
   suitCardId = cardId;
-  $('#suit-modal').classList.remove('hidden');
-}
-function openSuitModalDump() {
-  suitMode = 'dump';
-  suitCardId = null;
   $('#suit-modal').classList.remove('hidden');
 }
 document.querySelectorAll('.suit-btn').forEach(b => {
   b.onclick = () => {
     $('#suit-modal').classList.add('hidden');
-    if (suitMode === 'dump') sendMsg({ type: 'dumpJacks', suit: b.dataset.suit });
-    else if (suitCardId) sendMsg({ type: 'playCard', cardId: suitCardId, suit: b.dataset.suit });
+    if (suitCardId) sendMsg({ type: 'playCard', cardId: suitCardId, suit: b.dataset.suit });
     suitCardId = null;
-    suitMode = 'play';
   };
 });
 $('#suit-cancel').onclick = () => {
   suitCardId = null;
-  suitMode = 'play';
   $('#suit-modal').classList.add('hidden');
 };
 
@@ -825,7 +818,7 @@ $('#g-leave').onclick = () => {
 };
 
 $('#draw-btn').onclick = () => sendMsg({ type: 'drawCard' });
-$('#dump-jacks-btn').onclick = () => openSuitModalDump();
+$('#dump-jacks-btn').onclick = () => sendMsg({ type: 'dumpJacks' });
 $('#pass-btn').onclick = () => sendMsg({ type: 'endTurn' });
 $('#next-round-btn').onclick = () => sendMsg({ type: 'nextRound' });
 $('#rematch-btn').onclick = () => sendMsg({ type: 'startGame' });
