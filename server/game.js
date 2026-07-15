@@ -601,6 +601,7 @@ class Game {
       })),
       hand: me ? me.hand.map(c => ({ id: c.id, r: c.r, s: c.s, playable: playable(c) })) : [],
       top: this.top(),
+      topCards: this.discard.slice(-3),   // последние три — показываем стопкой
       jackSuit: this.jackSuit,
       pendingDraw: this.pendingDraw,
       kingStreak: this.kingStreak,

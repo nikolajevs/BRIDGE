@@ -303,8 +303,10 @@ input::placeholder { color: #6e5b49; }
   position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
   font-family: var(--mono); font-size: 13px; color: #cfe4d6;
 }
-.discard { width: 92px; height: 124px; }
+.discard { width: 92px; height: 124px; --dx: 26px; --dy: 7px; }
 .discard .card { position: absolute; top: 0; left: 0; }
+/* карты под верхней — приглушены, но масть и достоинство читаются */
+.discard .card.under { opacity: .82; filter: saturate(.85); }
 
 .badges {
   position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -505,7 +507,7 @@ input::placeholder { color: #6e5b49; }
   .card .pip { font-size: 30px; }
   .card .face { font-size: 27px; }
   .hand .card { margin-left: -22px; }
-  .discard { width: 78px; height: 106px; }
+  .discard { width: 78px; height: 106px; --dx: 21px; --dy: 5px; }
   .brand { font-size: 68px; }
   .felt-inner { gap: 24px; border-width: 7px; }
   .opp { min-width: 96px; padding: 6px 8px; }

@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'jack-suit-2026-07-15';
+const BUILD = 'discard3-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -340,6 +340,14 @@ function esc(s) {
 }
 
 const RED = { '♥': 1, '♦': 1 };
+// Небольшой наклон карты в сбросе. Считается от id, а не случайно — иначе
+// стопка дёргалась бы при каждой перерисовке состояния.
+function cardTilt(c) {
+  let h = 0;
+  for (let i = 0; i < c.id.length; i++) h = (h * 31 + c.id.charCodeAt(i)) & 0xffff;
+  return (h % 9) - 4;   // −4…+4 градуса
+}
+
 function cardHTML(c, cls = '') {
   const red = RED[c.s] ? ' red' : '';
   const face = (c.r === 'J' || c.r === 'Q' || c.r === 'K')
@@ -429,13 +437,20 @@ function renderGame(g) {
     </div>`;
   }).join('');
 
-  // центр стола
+  // центр стола: показываем последние три карты сброса — веером от центра,
+  // чтобы у нижних были видны масть и достоинство, а верхняя читалась как верхняя
   $('#deck-count').textContent = g.deckCount;
   const disc = $('#discard-pile');
-  const top = g.top;
-  disc.innerHTML = top ? cardHTML(top) : '';
-  const tilt = ((g.round * 7) % 11) - 5;
-  if (disc.firstElementChild) disc.firstElementChild.style.transform = `rotate(${tilt}deg)`;
+  const pile = (g.topCards && g.topCards.length) ? g.topCards : (g.top ? [g.top] : []);
+  disc.innerHTML = pile.map(c => cardHTML(c)).join('');
+  const n = pile.length;
+  [...disc.children].forEach((el, i) => {
+    const off = i - (n - 1) / 2;          // одна карта остаётся ровно по центру
+    el.style.transform =
+      `translate(calc(var(--dx) * ${off}), calc(var(--dy) * ${off})) rotate(${cardTilt(pile[i])}deg)`;
+    el.style.zIndex = String(i + 1);      // новее — выше
+    el.classList.toggle('under', i < n - 1);
+  });
 
   const badges = [];
   if (g.jackSuit) {
