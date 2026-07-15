@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'final-table-2026-07-15';
+const BUILD = 'donate-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 const $ = (s) => document.querySelector(s);
@@ -49,6 +49,7 @@ const I18N = {
     refresh: 'Обновить', save: 'Сохранить', del: 'Удалить', newPass: 'Новый пароль',
     emptyKeep: 'оставить пустым', adminFlag: 'админ', backCabinet: '← В кабинет',
     reconnecting: 'Переподключение…',
+    donate: '♥ Поддержать проект',
   },
   en: {
     tagline: 'card game at a shared table · 2–6 players',
@@ -89,6 +90,7 @@ const I18N = {
     refresh: 'Refresh', save: 'Save', del: 'Delete', newPass: 'New password',
     emptyKeep: 'leave empty', adminFlag: 'admin', backCabinet: '← To profile',
     reconnecting: 'Reconnecting…',
+    donate: '♥ Support the project',
   },
 };
 

@@ -462,6 +462,12 @@ input::placeholder { color: #6e5b49; }
   * { transition: none !important; }
 }
 
+.donate-line { margin: 16px 0 0; }
+.donate-link {
+  font-size: 13px; color: var(--muted); text-decoration: none;
+  border-bottom: 1px dotted var(--line); padding-bottom: 1px;
+}
+.donate-link:hover { color: var(--accent); border-bottom-color: var(--accent-dim); }
 .build-tag { margin-top: 14px; font-family: var(--mono); font-size: 11px; color: #6e5b49; }
 .lang-toggle {
   position: fixed; top: 10px; right: 12px; z-index: 50;
