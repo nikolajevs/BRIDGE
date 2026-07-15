@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'discard3-2026-07-15';
+const BUILD = 'whip-sound-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -922,26 +922,17 @@ function maybePlayTurnSound(g) {
 
 // хлыст на даму пик — символ наказания (следующий берёт 5 и пропускает)
 let lastTopId = null;
+let whipAudio = null;
 function playWhip() {
   if (!soundOn) return;
-  ensureAudio();
-  if (!audioCtx) return;
-  const ctx = audioCtx, now = ctx.currentTime, dur = 0.28;
-  // шумовой свист-щелчок с быстрым подъёмом и спадом частоты
-  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
-  bp.frequency.setValueAtTime(500, now);
-  bp.frequency.exponentialRampToValueAtTime(5500, now + 0.13); // свист вверх
-  bp.frequency.exponentialRampToValueAtTime(900, now + dur);   // и вниз — «щёлк»
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(0.55, now + 0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  src.connect(bp); bp.connect(g); g.connect(ctx.destination);
-  src.start(now); src.stop(now + dur);
+  if (!whipAudio) {
+    whipAudio = new Audio('sounds/dama-pik.mp3');
+    whipAudio.preload = 'auto';
+    whipAudio.volume = 0.85;
+  }
+  whipAudio.currentTime = 0;
+  // play() отклоняется, пока на странице не было действий пользователя — это не ошибка
+  whipAudio.play().catch(() => {});
 }
 function maybePlayWhip(g) {
   const tid = g.top ? g.top.id : null;

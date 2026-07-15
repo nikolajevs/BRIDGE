@@ -18,6 +18,7 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.mp3': 'audio/mpeg',
 };
 
 // ---------- статика ----------
