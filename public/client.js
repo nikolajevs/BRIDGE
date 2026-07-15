@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'donate-2026-07-15';
+const BUILD = 'timer-move-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
