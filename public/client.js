@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'sfx-seven-2026-07-16';
+const BUILD = 'sfx-eight-2026-07-16';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -952,6 +952,7 @@ function maybePlayCardSfx(g) {
   if (tid && tid !== lastTopId) {
     if (tid === 'Q♠') playSfx('dama-pik');
     else if (top.r === '7') playSfx('7');
+    else if (top.r === '8') playSfx('8');
   }
   lastTopId = tid;
 }
