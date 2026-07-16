@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'winner-modal-2026-07-16';
+const BUILD = 'sfx-seven-2026-07-16';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -296,7 +296,7 @@ function dispatch(m) {
       updateTurnDeadline(m);
       armResultsLock(m);
       maybePlayTurnSound(m);
-      maybePlayWhip(m);
+      maybePlayCardSfx(m);
       renderGame(m);
       show('game');
       break;
@@ -928,23 +928,31 @@ function maybePlayTurnSound(g) {
   wasMyTurn = isMyTurn;
 }
 
-// хлыст на даму пик — символ наказания (следующий берёт 5 и пропускает)
-let lastTopId = null;
-let whipAudio = null;
-function playWhip() {
+// Звуковые эффекты карт. Файл грузится один раз и переиспользуется.
+const SFX = {};
+function playSfx(name) {
   if (!soundOn) return;
-  if (!whipAudio) {
-    whipAudio = new Audio('sounds/dama-pik.mp3');
-    whipAudio.preload = 'auto';
-    whipAudio.volume = 0.85;
+  let a = SFX[name];
+  if (!a) {
+    a = SFX[name] = new Audio('sounds/' + name + '.mp3');
+    a.preload = 'auto';
+    a.volume = 0.85;
   }
-  whipAudio.currentTime = 0;
+  a.currentTime = 0;
   // play() отклоняется, пока на странице не было действий пользователя — это не ошибка
-  whipAudio.play().catch(() => {});
+  a.play().catch(() => {});
 }
-function maybePlayWhip(g) {
-  const tid = g.top ? g.top.id : null;
-  if (g.phase === 'playing' && tid === 'Q♠' && lastTopId !== 'Q♠') playWhip();
+
+// Звук играем, когда на стол легла НОВАЯ карта: даму пик ловим по конкретной
+// карте, семёрку — по достоинству (их в колоде четыре).
+let lastTopId = null;
+function maybePlayCardSfx(g) {
+  const top = (g.phase === 'playing' && g.top) ? g.top : null;
+  const tid = top ? top.id : null;
+  if (tid && tid !== lastTopId) {
+    if (tid === 'Q♠') playSfx('dama-pik');
+    else if (top.r === '7') playSfx('7');
+  }
   lastTopId = tid;
 }
 
