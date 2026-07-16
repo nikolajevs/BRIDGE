@@ -437,6 +437,7 @@ input::placeholder { color: #6e5b49; }
 .results tr.out td b { color: #f0a08b; }
 .winner-line { font-size: 18px; }
 .winner-line b { color: var(--accent); }
+.modal-box h3.win { font-size: 30px; text-shadow: 0 0 30px rgba(217,164,65,.35); }
 .modal-actions { justify-content: center; }
 
 .rules-line { margin: 10px 0 26px; }

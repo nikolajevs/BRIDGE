@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'autonext-2026-07-15';
+const BUILD = 'winner-modal-2026-07-16';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -43,6 +43,7 @@ const I18N = {
     jackChoose: 'Валет: закажите масть', cancel: 'Отмена',
     nextRoundIn: 'Следующий раунд через', starting: 'Начинаем…',
     gameOver: 'Партия окончена', winnerIs: 'Победитель —', rematch: 'Сыграть ещё',
+    youWonTitle: '🏆 Поздравляем!', youWonLine: 'Вы выиграли партию!',
     playerCol: 'Игрок', scoreCol: 'Очки', roundsCol: 'Раунды',
     winnerNote: 'победитель', outNote: 'выбыл',
     rematchWait: 'Создатель стола может начать новую партию', leaveToLobby: 'Выйти в лобби',
@@ -85,6 +86,7 @@ const I18N = {
     jackChoose: 'Jack: choose a suit', cancel: 'Cancel',
     nextRoundIn: 'Next round in', starting: 'Starting…',
     gameOver: 'Game over', winnerIs: 'Winner —', rematch: 'Play again',
+    youWonTitle: '🏆 Congratulations!', youWonLine: 'You won the game!',
     playerCol: 'Player', scoreCol: 'Score', roundsCol: 'Rounds',
     winnerNote: 'winner', outNote: 'out',
     rematchWait: 'The host can start a new game', leaveToLobby: 'Back to lobby',
@@ -272,15 +274,23 @@ function dispatch(m) {
       lastLeaderboard = m.rows;
       renderLeaderboard();
       break;
-    case 'lobby':
+    case 'lobby': {
       lastLobby = m;
       renderLobby(m);
-      show('lobby');
+      // пока игрок читает итоги партии — не уводим его с экрана игры,
+      // иначе непонятно, чем всё кончилось. Список лобби всё равно обновлён.
+      const overShown = currentScreen === 'game' && lastGame && lastGame.phase === 'over';
+      if (!overShown) show('lobby');
       break;
-    case 'table':
+    }
+    case 'table': {
       renderTable(m);
-      if (!m.inGame) { chatLines = []; show('table'); }
+      // пока игрок читает итоги партии — не уводим его с экрана игры;
+      // он сам решит: «Сыграть ещё» или «Выйти в лобби»
+      const showingOver = currentScreen === 'game' && lastGame && lastGame.phase === 'over';
+      if (!m.inGame && !showingOver) { chatLines = []; show('table'); }
       break;
+    }
     case 'game':
       lastGame = m;
       updateTurnDeadline(m);
@@ -599,8 +609,11 @@ function renderModals(g) {
   // конец партии
   const om = $('#over-modal');
   if (g.phase === 'over') {
-    $('#over-title').textContent = t('gameOver');
-    $('#winner-line').innerHTML = `${t('winnerIs')} <b>${esc(g.winner || '')}</b>`;
+    $('#over-title').textContent = g.youWon ? t('youWonTitle') : t('gameOver');
+    $('#over-title').classList.toggle('win', !!g.youWon);
+    $('#winner-line').innerHTML = g.youWon
+      ? t('youWonLine')
+      : `${t('winnerIs')} <b>${esc(g.winner || '')}</b>`;
     $('#over-results').innerHTML = g.finalResults
       ? finalTable(g.finalResults)
       : (g.roundResults ? resultsTable(g.roundResults) : '');

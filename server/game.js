@@ -618,6 +618,7 @@ class Game {
       roundResults: this.roundResults,
       finalResults: this.finalResults,
       winner: this.winner,
+      youWon: !!(me && this.winnerToken && me.token === this.winnerToken),
     };
   }
 }

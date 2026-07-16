@@ -152,7 +152,6 @@ function onTurnTimeout(t, token) {
   try { t.game.autoMove(t.game.turn); } catch (e) { /* игнорируем */ }
   t.lastActive = Date.now();
   broadcastGame(t);
-  if (t.game.phase === 'over') broadcastTable(t);
 }
 
 function recordGameResult(t) {
@@ -244,7 +243,6 @@ function scheduleBot(t) {
     try { t.game.botStep(idx); } catch (e) { console.error('[bot]', e.message); }
     t.lastActive = Date.now();
     broadcastGame(t);
-    if (t.game.phase === 'over') broadcastTable(t);
   }, 900);
 }
 
@@ -541,7 +539,6 @@ function handle(ws, m) {
       t.game.playCard(token, String(m.cardId || ''), m.suit);
       t.lastActive = Date.now();
       broadcastGame(t);
-      if (t.game.phase === 'over') broadcastTable(t);
       break;
     }
 
@@ -551,7 +548,6 @@ function handle(ws, m) {
       t.game.dumpJacks(token);
       t.lastActive = Date.now();
       broadcastGame(t);
-      if (t.game.phase === 'over') broadcastTable(t);
       break;
     }
 
