@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'whip-sound-2026-07-15';
+const BUILD = 'autonext-2026-07-15';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -41,7 +41,7 @@ const I18N = {
     mustCover: 'Накройте шестёрку (или берите из прикупа)',
     playDrawn: 'Сыграйте взятую карту или пасуйте',
     jackChoose: 'Валет: закажите масть', cancel: 'Отмена',
-    nextRound: 'Следующий раунд', waitHostShort: 'Ждём создателя стола…',
+    nextRoundIn: 'Следующий раунд через', starting: 'Начинаем…',
     gameOver: 'Партия окончена', winnerIs: 'Победитель —', rematch: 'Сыграть ещё',
     playerCol: 'Игрок', scoreCol: 'Очки', roundsCol: 'Раунды',
     winnerNote: 'победитель', outNote: 'выбыл',
@@ -83,7 +83,7 @@ const I18N = {
     mustCover: 'Cover the six (or draw from the deck)',
     playDrawn: 'Play the drawn card or pass',
     jackChoose: 'Jack: choose a suit', cancel: 'Cancel',
-    nextRound: 'Next round', waitHostShort: 'Waiting for the host…',
+    nextRoundIn: 'Next round in', starting: 'Starting…',
     gameOver: 'Game over', winnerIs: 'Winner —', rematch: 'Play again',
     playerCol: 'Player', scoreCol: 'Score', roundsCol: 'Rounds',
     winnerNote: 'winner', outNote: 'out',
@@ -574,10 +574,9 @@ function tickResultsLock() {
   if (!lastGame) return;
   const locked = Date.now() < resultsLockUntil;
   const secs = Math.max(0, Math.ceil((resultsLockUntil - Date.now()) / 1000));
-  if (lastGame.phase === 'roundEnd' && lastGame.youAreHost) {
-    const b = $('#next-round-btn');
-    b.disabled = locked;
-    b.textContent = locked ? `${t('nextRound')} (${secs})` : t('nextRound');
+  if (lastGame.phase === 'roundEnd') {
+    const el = $('#next-round-wait');
+    el.textContent = secs > 0 ? `${t('nextRoundIn')} ${secs}…` : t('starting');
   }
   if (lastGame.phase === 'over' && lastGame.youAreHost) {
     const b = $('#rematch-btn');
@@ -592,9 +591,6 @@ function renderModals(g) {
   if (g.phase === 'roundEnd' && g.roundResults) {
     $('#round-title').textContent = lang === 'en' ? `Round ${g.round} over` : `Раунд ${g.round} окончен`;
     $('#round-results').innerHTML = resultsTable(g.roundResults);
-    $('#next-round-wait').textContent = t('waitHostShort');
-    $('#next-round-btn').classList.toggle('hidden', !g.youAreHost);
-    $('#next-round-wait').classList.toggle('hidden', g.youAreHost);
     rm.classList.remove('hidden');
   } else {
     rm.classList.add('hidden');
@@ -835,7 +831,6 @@ $('#g-leave').onclick = () => {
 $('#draw-btn').onclick = () => sendMsg({ type: 'drawCard' });
 $('#dump-jacks-btn').onclick = () => sendMsg({ type: 'dumpJacks' });
 $('#pass-btn').onclick = () => sendMsg({ type: 'endTurn' });
-$('#next-round-btn').onclick = () => sendMsg({ type: 'nextRound' });
 $('#rematch-btn').onclick = () => sendMsg({ type: 'startGame' });
 $('#over-leave-btn').onclick = () => { lastGame = null; sendMsg({ type: 'leaveTable' }); };
 
