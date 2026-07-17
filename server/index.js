@@ -127,19 +127,28 @@ function verifyTelegramInitData(initData) {
   const hash = params.get('hash');
   if (!hash) return null;
   params.delete('hash');
-  params.delete('signature');            // не участвует в hash-проверке
-
-  const dataCheckString = [...params.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
 
   const secret = crypto.createHmac('sha256', 'WebAppData').update(TG_BOT_TOKEN).digest();
-  const calc = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex');
+  const pairs = [...params.entries()];
 
-  const a = Buffer.from(calc, 'hex');
-  const b = Buffer.from(hash, 'hex');
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  // Telegram включает поле signature в расчёт hash, но так было не всегда.
+  // Проверяем оба варианта: сойдётся любой — данные подписаны Telegram.
+  const variants = [
+    pairs,                                     // как есть (signature участвует)
+    pairs.filter(([k]) => k !== 'signature'),  // старый формат, без signature
+  ];
+
+  const given = Buffer.from(hash, 'hex');
+  const ok = variants.some(list => {
+    const dcs = list
+      .slice()
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([k, v]) => `${k}=${v}`)
+      .join('\n');
+    const calc = Buffer.from(crypto.createHmac('sha256', secret).update(dcs).digest('hex'), 'hex');
+    return calc.length === given.length && crypto.timingSafeEqual(calc, given);
+  });
+  if (!ok) return null;
 
   // защита от повторного использования старой подписи
   const authDate = Number(params.get('auth_date') || 0);
@@ -451,7 +460,9 @@ function handle(ws, m) {
       } else {
         // Не сложилось (чаще всего не задан TG_BOT_TOKEN) — не упираемся в тупик:
         // игрок зайдёт гостем по имени из профиля, но статистика копиться не будет.
-        console.warn('[tg] initData не прошла проверку' + (TG_BOT_TOKEN ? '' : ' — не задан TG_BOT_TOKEN'));
+        console.warn('[tg] initData не прошла проверку' + (TG_BOT_TOKEN
+          ? ' — токен задан, но подпись им не сходится: скорее всего это токен другого бота (нужен тот, под которым создано мини-приложение)'
+          : ' — не задан TG_BOT_TOKEN'));
       }
     }
     const name = account ? account.name : String(m.name || '').trim().slice(0, 20);

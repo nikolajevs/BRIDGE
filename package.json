@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node test/smoke.js && node test/db.js"
+    "test": "node test/smoke.js && node test/db.js && node test/tg.js"
   },
   "engines": {
     "node": ">=20"
