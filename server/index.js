@@ -106,6 +106,51 @@ function broadcastTable(t) {
 
 const TURN_MS = 30000; // лимит времени на ход
 
+// ---------- Telegram Mini App ----------
+
+// Токен бота из @BotFather. Без него вход через Telegram выключен —
+// доверять данным без проверки подписи нельзя.
+const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN || '';
+const TG_MAX_AGE_S = Number(process.env.TG_MAX_AGE_S) || 24 * 60 * 60;
+
+/**
+ * Проверяет initData, которую Telegram передаёт мини-приложению, и возвращает
+ * профиль пользователя. Подпись считается по алгоритму Telegram:
+ * secret = HMAC_SHA256("WebAppData", bot_token), затем HMAC_SHA256(secret, data_check_string).
+ * Без этой проверки любой мог бы прислать чужой telegram id и забрать чужой аккаунт.
+ */
+function verifyTelegramInitData(initData) {
+  if (!TG_BOT_TOKEN || typeof initData !== 'string' || !initData) return null;
+  let params;
+  try { params = new URLSearchParams(initData); } catch { return null; }
+
+  const hash = params.get('hash');
+  if (!hash) return null;
+  params.delete('hash');
+  params.delete('signature');            // не участвует в hash-проверке
+
+  const dataCheckString = [...params.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n');
+
+  const secret = crypto.createHmac('sha256', 'WebAppData').update(TG_BOT_TOKEN).digest();
+  const calc = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex');
+
+  const a = Buffer.from(calc, 'hex');
+  const b = Buffer.from(hash, 'hex');
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+  // защита от повторного использования старой подписи
+  const authDate = Number(params.get('auth_date') || 0);
+  if (!authDate || Math.floor(Date.now() / 1000) - authDate > TG_MAX_AGE_S) return null;
+
+  try {
+    const user = JSON.parse(params.get('user') || 'null');
+    return (user && user.id) ? user : null;
+  } catch { return null; }
+}
+
 // Сколько держим место за игроком, если связь оборвалась до начала игры.
 // Клиент переподключается через 1.5 с, так что минуты хватает и на смену сети.
 const SEAT_GRACE_MS = Number(process.env.SEAT_GRACE_MS) || 60 * 1000;
@@ -394,8 +439,21 @@ function handle(ws, m) {
   }
 
   if (m.type === 'hello') {
-    // аккаунт (если пришёл валидный auth-токен) переопределяет имя
-    const account = m.auth ? db.userBySession(m.auth) : null;
+    // Вход из Telegram: подпись проверена — заводим/находим аккаунт и выдаём
+    // сессию, чтобы статистика копилась без всякой регистрации.
+    let account = m.auth ? db.userBySession(m.auth) : null;
+    let issuedAuth = null;
+    if (!account && m.tgInitData) {
+      const tgUser = verifyTelegramInitData(m.tgInitData);
+      if (tgUser) {
+        account = db.upsertTelegramUser(tgUser);
+        issuedAuth = db.createSession(account.id);
+      } else {
+        // Не сложилось (чаще всего не задан TG_BOT_TOKEN) — не упираемся в тупик:
+        // игрок зайдёт гостем по имени из профиля, но статистика копиться не будет.
+        console.warn('[tg] initData не прошла проверку' + (TG_BOT_TOKEN ? '' : ' — не задан TG_BOT_TOKEN'));
+      }
+    }
     const name = account ? account.name : String(m.name || '').trim().slice(0, 20);
     if (!name) throw new Error('Введите имя');
     let token = typeof m.token === 'string' && m.token.length >= 16 ? m.token : null;
@@ -411,7 +469,11 @@ function handle(ws, m) {
     }
     if (rec.dropTimer) { clearTimeout(rec.dropTimer); rec.dropTimer = null; } // вернулся — место за ним
     rec.userId = account ? account.id : null;
-    send(ws, { type: 'hello', token, name, account: account ? { login: account.login, name: account.name, isAdmin: db.isAdmin(account) } : null });
+    send(ws, {
+      type: 'hello', token, name,
+      auth: issuedAuth,   // выдан при входе через Telegram — клиент его сохранит
+      account: account ? { login: account.login, name: account.name, isAdmin: db.isAdmin(account) } : null,
+    });
 
     const t = tableOf(token);
     if (t) {

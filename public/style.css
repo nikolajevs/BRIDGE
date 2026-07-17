@@ -89,7 +89,7 @@ input::placeholder { color: #6e5b49; }
 
 /* ---------- экраны имени / лобби / стола ---------- */
 
-.screen { min-height: 100dvh; }
+.screen { min-height: var(--app-h, 100dvh); }
 .center-screen { display: flex; align-items: center; justify-content: center; padding: 24px; }
 
 .brand {
@@ -201,7 +201,7 @@ input::placeholder { color: #6e5b49; }
 
 /* ---------- игровой экран ---------- */
 
-#screen-game { display: flex; flex-direction: column; height: 100dvh; }
+#screen-game { display: flex; flex-direction: column; height: var(--app-h, 100dvh); }
 #screen-game.hidden { display: none; }
 
 .game-top {

@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'sfx-eight-2026-07-16';
+const BUILD = 'tg-miniapp-2026-07-17';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -188,6 +188,43 @@ const RULES_HTML = {
     </ul>`,
 };
 
+// ---------- Telegram Mini App ----------
+// Игра работает и как обычный сайт, и внутри Telegram. Здесь только то, что
+// нужно внутри мессенджера: развернуть окно и войти без пароля.
+
+const TG = (window.Telegram && window.Telegram.WebApp) || null;
+// initData пустая, если страницу открыли не из Telegram, — тогда всё как обычно
+const inTelegram = !!(TG && TG.initData);
+
+function setupTelegram() {
+  if (!TG) return;
+  try {
+    TG.ready();
+    TG.expand();                                   // не оставаться в «шторке» на пол-экрана
+    if (TG.disableVerticalSwipes) TG.disableVerticalSwipes(); // свайп по столу не должен закрывать игру
+    if (TG.setHeaderColor) TG.setHeaderColor('#1A110D');
+    if (TG.setBackgroundColor) TG.setBackgroundColor('#221713');
+    // Высоту берём у Telegram: на iOS 100dvh внутри «шторки» врёт и низ обрезается.
+    applyTgViewport();
+    if (TG.onEvent) TG.onEvent('viewportChanged', applyTgViewport);
+  } catch (e) {
+    console.warn('Telegram WebApp:', e);
+  }
+}
+
+function applyTgViewport() {
+  const h = TG && (TG.viewportStableHeight || TG.viewportHeight);
+  if (h) document.documentElement.style.setProperty('--app-h', h + 'px');
+}
+
+// Имя из профиля Telegram. Используется только как запасной вариант для входа
+// гостем: доверять этим данным нельзя, они не подписаны (в отличие от initData).
+function tgProfileName() {
+  const u = TG && TG.initDataUnsafe && TG.initDataUnsafe.user;
+  const n = u && (u.first_name || u.username);
+  return String(n || 'Игрок').trim().slice(0, 20) || 'Игрок';
+}
+
 const store = {
   get token() { return localStorage.getItem('g125_token') || ''; },
   set token(v) { localStorage.setItem('g125_token', v); },
@@ -218,6 +255,9 @@ function connect() {
     $('#conn').classList.add('hidden');
     if (pendingOpen) { const fn = pendingOpen; pendingOpen = null; fn(); return; }
     if (store.auth) sendMsg({ type: 'hello', auth: store.auth, token: store.token });
+    // в Telegram входим по подписанным данным профиля — ни логина, ни пароля не нужно.
+    // имя шлём запасным вариантом: если подпись не примут, зайдём хотя бы гостем
+    else if (inTelegram) sendMsg({ type: 'hello', tgInitData: TG.initData, name: tgProfileName(), token: store.token });
     else if (store.name) sendMsg({ type: 'hello', name: store.name, token: store.token });
   };
 
@@ -247,6 +287,7 @@ function dispatch(m) {
     case 'hello':
       store.token = m.token;
       store.name = m.name;
+      if (m.auth) store.auth = m.auth;   // сессия, выданная при входе через Telegram
       account = m.account || null;
       break;
     case 'auth':
@@ -998,5 +1039,13 @@ document.addEventListener('keydown', (e) => {
 const buildTag = $('#build-tag');
 if (buildTag) buildTag.textContent = 'build ' + BUILD;
 if (store.name) $('#name-input').value = store.name;
+
+setupTelegram();
+if (inTelegram) {
+  // личность приходит из Telegram — уводить себя в гостя нечего
+  const ch = $('#change-name');
+  if (ch) ch.classList.add('hidden');
+}
+
 show('name');
 connect();

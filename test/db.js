@@ -141,7 +141,37 @@ ok('админ: удаление аккаунта', () => {
   assert.strictEqual(db.userBySession(tok), null); // сессии тоже удалены
 });
 
-console.log(passed + ' проверок БД пройдено' + (process.exitCode ? ', есть ошибки!' : '.'));
 
 // уборка
 try { fs.unlinkSync(tmp); fs.unlinkSync(tmp + '-wal'); fs.unlinkSync(tmp + '-shm'); } catch {}
+
+// ---------- Telegram-аккаунты ----------
+ok('Telegram: аккаунт заводится и переиспользуется', () => {
+  const u = db.upsertTelegramUser({ id: 555001, first_name: 'Игорь', username: 'igors' });
+  assert.strictEqual(u.tg_id, 555001);
+  assert.strictEqual(u.name, 'Игорь');
+  const again = db.upsertTelegramUser({ id: 555001, first_name: 'Игорь' });
+  assert.strictEqual(again.id, u.id, 'тот же аккаунт, а не новый');
+});
+
+ok('Telegram: имя обновляется, id аккаунта не меняется', () => {
+  const u = db.upsertTelegramUser({ id: 555002, first_name: 'Пётр' });
+  const renamed = db.upsertTelegramUser({ id: 555002, first_name: 'Пётр Первый' });
+  assert.strictEqual(renamed.id, u.id);
+  assert.strictEqual(renamed.name, 'Пётр Первый');
+});
+
+ok('Telegram: в такой аккаунт нельзя войти паролем', () => {
+  const u = db.upsertTelegramUser({ id: 555003, first_name: 'Анна' });
+  let threw = false;
+  try { db.login(u.login, ''); } catch { threw = true; }
+  assert(threw, 'пустой пароль не подходит');
+});
+
+ok('Telegram: разные профили — разные аккаунты', () => {
+  const a = db.upsertTelegramUser({ id: 555004, first_name: 'A' });
+  const b = db.upsertTelegramUser({ id: 555005, first_name: 'B' });
+  assert.notStrictEqual(a.id, b.id);
+});
+
+console.log(passed + ' проверок БД пройдено' + (process.exitCode ? ', есть ошибки!' : '.'));

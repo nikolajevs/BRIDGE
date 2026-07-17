@@ -40,6 +40,11 @@ const cols = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
 if (!cols.includes('is_admin')) {
   db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
 }
+// миграция: привязка к Telegram (у обычных аккаунтов остаётся NULL)
+if (!cols.includes('tg_id')) {
+  db.exec('ALTER TABLE users ADD COLUMN tg_id INTEGER');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_tg ON users(tg_id) WHERE tg_id IS NOT NULL');
+}
 
 // назначить админа по переменной окружения ADMIN_LOGIN (один раз при старте)
 const ADMIN_LOGIN = (process.env.ADMIN_LOGIN || '').trim().toLowerCase();
@@ -100,6 +105,36 @@ function login(loginName, password) {
 
 function getUserById(id) {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+}
+
+/**
+ * Аккаунт для пользователя Telegram: находим по tg_id или заводим новый.
+ * Пароль ставим случайный и никому не известный — входить сюда можно только
+ * через Telegram, обычная форма входа к такому аккаунту не подойдёт.
+ * Вызывать только после проверки подписи initData!
+ */
+function upsertTelegramUser(tg) {
+  const tgId = Number(tg && tg.id);
+  if (!Number.isFinite(tgId) || tgId <= 0) throw new Error('Некорректный профиль Telegram');
+
+  const name = String(tg.first_name || tg.username || 'Игрок').trim().slice(0, 20) || 'Игрок';
+  const found = db.prepare('SELECT * FROM users WHERE tg_id = ?').get(tgId);
+  if (found) {
+    if (found.name !== name) db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, found.id);
+    return getUserById(found.id);
+  }
+
+  // служебный логин; если вдруг занят обычным пользователем — добавляем суффикс
+  let login = 'tg' + tgId;
+  while (db.prepare('SELECT 1 FROM users WHERE login_lc = ?').get(login.toLowerCase())) {
+    login = 'tg' + tgId + '_' + crypto.randomBytes(2).toString('hex');
+  }
+  const { hash, salt } = hashPassword(crypto.randomBytes(32).toString('hex'));
+  const info = db.prepare(`
+    INSERT INTO users (login, login_lc, name, pass_hash, pass_salt, tg_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(login, login.toLowerCase(), name, hash, salt, tgId, Date.now());
+  return getUserById(info.lastInsertRowid);
 }
 
 // ---------- сессии ----------
@@ -219,7 +254,7 @@ const deleteUser = db.transaction((id) => {
 });
 
 module.exports = {
-  register, login, getUserById,
+  register, login, getUserById, upsertTelegramUser,
   createSession, userBySession, deleteSession,
   recordGame, leaderboard, userStats,
   isAdmin, listUsers, updateUser, deleteUser,

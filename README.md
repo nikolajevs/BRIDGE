@@ -125,6 +125,12 @@ test/e2e.js       сквозной тест по WebSocket
 
 Автоматический деплой на VPS при каждом push в `main` — см. **[DEPLOY.md](DEPLOY.md)**.
 
+## Telegram Mini App
+
+Игра открывается прямо внутри Telegram: вход без пароля (профиль подтверждается
+подписью Telegram), статистика привязана к аккаунту. Настройка бота и токена —
+в **[TELEGRAM.md](TELEGRAM.md)**.
+
 ## Android-приложение
 
 В папке **[android/](android/)** — тонкая WebView-обёртка (Android Studio проект):
