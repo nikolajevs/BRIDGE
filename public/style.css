@@ -298,6 +298,10 @@ input::placeholder { color: #6e5b49; }
    поэтому не стираются при перерисовке карточек на каждом обновлении игры */
 .fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: visible; }
 .slime-splat { position: absolute; pointer-events: none; }
+/* потёки вверх — для моей панели у нижнего края (вниз нельзя, там карты) */
+.slime-splat.up .drip { top: auto; bottom: -3px; }
+.slime-splat.up .drip::after { bottom: auto; top: -5px; }
+.slime-splat.up .drip::before { top: auto; bottom: 4px; }
 .slime-splat .drip {
   position: absolute; top: -3px; width: var(--w, 10px); height: 0;
   transform: translateX(-50%);       /* left — центр потёка, а не левый край */

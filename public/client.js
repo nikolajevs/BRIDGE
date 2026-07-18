@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-symmetry-2026-07-18';
+const BUILD = 'slime-me-up-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1055,32 +1055,53 @@ function splatQueenVictim(g) {
 function splatSlime(anchor) {
   const layer = $('#fx-layer');
   if (!layer) return;
+
+  // жертва — я: панель со счётом внизу экрана, у самых карт. Вешаем сопли прямо
+  // на панель, потёками ВВЕРХ (вниз нельзя — там рука), чтобы не залить карты.
+  if (anchor.id === 'me-info') {
+    splatOnEl(anchor, 'up');
+    return;
+  }
+
+  // жертва — соперник: сопли в слое над столом, свисают вниз от карточки
   const host = layer.offsetParent || layer.parentElement;
   const hostRect = host.getBoundingClientRect();
   const r = anchor.getBoundingClientRect();
-
-  const splat = document.createElement('div');
-  splat.className = 'slime-splat';
-  // небольшой внутренний отступ по бокам, чтобы крайние потёки гарантированно
-  // не прилегали к краям карточки (проценты потёков считаются от этой ширины)
   const pad = Math.max(6, r.width * 0.1);
+  const splat = buildSplat(r.width - pad * 2, 'down');
   splat.style.left = (r.left - hostRect.left + pad) + 'px';
   splat.style.top = (r.top - hostRect.top) + 'px';
-  splat.style.width = (r.width - pad * 2) + 'px';
   splat.style.height = r.height + 'px';
+  layer.appendChild(splat);
+  setTimeout(() => splat.remove(), 4200);
+}
 
+// Сопли прямо поверх элемента (для моей панели). Родитель уже position:relative.
+function splatOnEl(el, dir) {
+  const pad = Math.max(6, el.clientWidth * 0.1);
+  const splat = buildSplat(el.clientWidth - pad * 2, dir);
+  splat.style.left = pad + 'px';
+  splat.style.top = '0';
+  splat.style.bottom = '0';
+  el.appendChild(splat);
+  setTimeout(() => splat.remove(), 4200);
+}
+
+function buildSplat(widthPx, dir) {
+  const splat = document.createElement('div');
+  splat.className = 'slime-splat' + (dir === 'up' ? ' up' : '');
+  splat.style.width = widthPx + 'px';
   const drips = 5;
   for (let i = 0; i < drips; i++) {
     const d = document.createElement('span');
     d.className = 'drip';
-    d.style.left = (10 + i * (80 / (drips - 1))) + '%';   // равномерно внутри splat с отступами
+    d.style.left = (10 + i * (80 / (drips - 1))) + '%';
     d.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
-    d.style.setProperty('--len', (26 + Math.random() * 26).toFixed(0) + 'px');
-    d.style.setProperty('--w', (6 + Math.random() * 4).toFixed(0) + 'px');   // 6..10px
+    d.style.setProperty('--len', (22 + Math.random() * 22).toFixed(0) + 'px');
+    d.style.setProperty('--w', (6 + Math.random() * 4).toFixed(0) + 'px');
     splat.appendChild(d);
   }
-  layer.appendChild(splat);
-  setTimeout(() => splat.remove(), 4200);
+  return splat;
 }
 
 function refreshSoundBtn() {
