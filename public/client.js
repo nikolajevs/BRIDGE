@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'sfx-dama-only-2026-07-18';
+const BUILD = 'slime-queen-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -337,8 +337,8 @@ function dispatch(m) {
       updateTurnDeadline(m);
       armResultsLock(m);
       maybePlayTurnSound(m);
-      maybePlayCardSfx(m);
       renderGame(m);
+      maybePlayCardSfx(m);   // после рендера: анимации нужны готовые карточки в DOM
       show('game');
       break;
     case 'chat':
@@ -519,7 +519,7 @@ function renderGame(g) {
       ? `right:${(100 - px).toFixed(1)}%;top:${py.toFixed(1)}%`
       : `left:${px.toFixed(1)}%;top:${py.toFixed(1)}%`;
 
-    return `<div class="${cls} ${side}" style="${posStyle}">
+    return `<div class="${cls} ${side}" data-pidx="${i}" style="${posStyle}">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
       <div class="opp-cards">${minis}${countTag}</div>
       <div class="opp-score">${score}</div>
@@ -1029,9 +1029,48 @@ function maybePlayCardSfx(g) {
   const top = (g.phase === 'playing' && g.top) ? g.top : null;
   const tid = top ? top.id : null;
   if (tid && tid !== lastTopId) {
-    if (tid === 'Q♠') playSfx('dama-pik');   // единственный звук карты — на даму пик
+    if (tid === 'Q♠') {
+      playSfx('dama-pik');           // единственный звук карты — на даму пик
+      splatQueenVictim(g);           // и зелёные сопли тому, кому прилетело
+    }
   }
   lastTopId = tid;
+}
+
+// Дама пик наказывает следующего игрока (ход уже перешёл к нему — это turnIdx).
+// Пускаем по его карточке стекающие зелёные сопли.
+function splatQueenVictim(g) {
+  const victim = g.turnIdx;
+  if (victim < 0) return;
+  const target = g.players[victim] && g.players[victim].you
+    ? $('#me-info')
+    : document.querySelector(`.opp[data-pidx="${victim}"]`);
+  if (!target) return;
+  splatSlime(target);
+}
+
+function splatSlime(el) {
+  el.classList.remove('slimed');
+  void el.offsetWidth;               // сброс, чтобы анимация повторялась подряд
+  el.classList.add('slimed');
+
+  // несколько потёков разной длины и задержки — живее, чем одна полоса
+  let layer = el.querySelector('.slime');
+  if (layer) layer.remove();
+  layer = document.createElement('div');
+  layer.className = 'slime';
+  const drips = 5;
+  for (let i = 0; i < drips; i++) {
+    const d = document.createElement('span');
+    d.className = 'drip';
+    d.style.left = (8 + i * (84 / (drips - 1))) + '%';
+    d.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
+    d.style.setProperty('--len', (26 + Math.random() * 26).toFixed(0) + 'px');
+    d.style.setProperty('--w', (7 + Math.random() * 6).toFixed(0) + 'px');
+    layer.appendChild(d);
+  }
+  el.appendChild(layer);
+  setTimeout(() => { layer.remove(); el.classList.remove('slimed'); }, 2600);
 }
 
 function refreshSoundBtn() {
