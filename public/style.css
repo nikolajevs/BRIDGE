@@ -297,11 +297,7 @@ input::placeholder { color: #6e5b49; }
 /* слой эффектов поверх стола: сопли живут здесь, а не внутри карточек,
    поэтому не стираются при перерисовке карточек на каждом обновлении игры */
 .fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: visible; }
-.slime-splat { position: absolute; pointer-events: none; }
-/* потёки вверх — для моей панели у нижнего края (вниз нельзя, там карты) */
-.slime-splat.up .drip { top: auto; bottom: -3px; }
-.slime-splat.up .drip::after { bottom: auto; top: -5px; }
-.slime-splat.up .drip::before { top: auto; bottom: 4px; }
+.slime-splat { position: absolute; pointer-events: none; z-index: 30; }
 .slime-splat .drip {
   position: absolute; top: -3px; width: var(--w, 10px); height: 0;
   transform: translateX(-50%);       /* left — центр потёка, а не левый край */
@@ -416,7 +412,7 @@ input::placeholder { color: #6e5b49; }
 .status.mine { color: var(--accent); font-weight: 700; }
 .status.warn { color: #f0a08b; }
 
-.me-area { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.me-area { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .hand {
   display: flex; justify-content: center;
   padding: 6px 4px 2px;
