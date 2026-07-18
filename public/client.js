@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'circle-wide-2026-07-17';
+const BUILD = 'seats-layout-2026-07-17';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -463,10 +463,9 @@ function renderGame(g) {
   $('#g-table-name').textContent = `${g.tableName} · ${g.tableId}`;
   $('#g-round').textContent = `${t('round')} ${g.round}`;
 
-  // Соперники сидят по дуге вокруг стола — как за настоящим столом.
-  // Я всегда снизу; иду по очереди хода (по часовой): тот, кто ходит сразу
-  // после меня, садится слева, дальше по верхней дуге направо к последнему
-  // передо мной. Так очередь читается визуально: слева → вверх → вправо.
+  // Соперники сидят по очереди хода (по часовой): первый после меня — левее,
+  // последний передо мной — правее. Раскладки заданы явно под каждое число
+  // игроков — так предсказуемо и никто не наезжает на мою руку и на борта.
   const opp = $('#opponents');
   const ptsLbl = lang === 'en' ? 'pts' : 'очк.';
   const meIdx = g.youIdx;
@@ -477,7 +476,17 @@ function renderGame(g) {
     others.push({ p: g.players[idx], i: idx });
   }
 
-  const m = others.length;
+  // позиции по числу соперников: {x,y} в % от стола; крайних якорим к борту.
+  // 1 соперник — сверху по центру; 2 и больше — дугой сверху.
+  const LAYOUTS = {
+    1: [{ x: 50, y: 8 }],
+    2: [{ x: 22, y: 14 }, { x: 78, y: 14 }],
+    3: [{ x: 14, y: 30 }, { x: 50, y: 6 }, { x: 86, y: 30 }],
+    4: [{ x: 12, y: 40 }, { x: 34, y: 8 }, { x: 66, y: 8 }, { x: 88, y: 40 }],
+    5: [{ x: 10, y: 44 }, { x: 28, y: 12 }, { x: 50, y: 4 }, { x: 72, y: 12 }, { x: 90, y: 44 }],
+  };
+  const layout = LAYOUTS[others.length] || LAYOUTS[5];
+
   opp.innerHTML = others.map((x, k) => {
     const { p, i } = x;
     const cls = [
@@ -488,7 +497,7 @@ function renderGame(g) {
       (p.count === 1 && !p.eliminated) ? 'one-card' : '',
     ].join(' ');
 
-    // до 5 рубашек, остальное — числом; так карточка компактнее и влезает в круг
+    // до 5 рубашек, остальное — числом; так карточка компактнее
     const shown = Math.min(p.count, 5);
     let minis = '';
     for (let s = 0; s < shown; s++) minis += '<div class="mini"></div>';
@@ -498,27 +507,12 @@ function renderGame(g) {
 
     const score = p.eliminated ? (lang === 'en' ? 'out' : 'выбыл') : `${p.score} ${ptsLbl}`;
 
-    // позиция на дуге: один соперник — сверху по центру; несколько — по часовой
-    // от меня, поэтому идём справа налево по углу (следующий игрок оказывается слева).
-    // Радиусы берём из CSS, чтобы на телефоне дуга была уже и никто не уезжал за край.
-    const cs = getComputedStyle(document.documentElement);
-    const rx = parseFloat(cs.getPropertyValue('--arc-rx')) || 42;
-    const ry = parseFloat(cs.getPropertyValue('--arc-ry')) || 40;
-    const cy = parseFloat(cs.getPropertyValue('--arc-cy')) || 46;
-    const cnt = others.length;
-    const frac = cnt === 1 ? 0.5 : k / (cnt - 1);
-    const angle = Math.PI * frac;                // 0 (слева) → π (справа)
-    const x0 = 50 - Math.cos(angle) * rx;        // % по горизонтали
-    const y0 = cy - Math.sin(angle) * ry;        // % по вертикали (верхняя дуга)
-
-    // у бортов не центрируем карточку по точке (иначе половина свисает за стол),
-    // а прижимаем краем — тогда крайних можно увести к самому бортику
-    const side = x0 < 34 ? 'anchor-l' : x0 > 66 ? 'anchor-r' : '';
-    const posStyle = side === 'anchor-l'
-      ? `left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%`
-      : side === 'anchor-r'
-        ? `right:${(100 - x0).toFixed(1)}%;top:${y0.toFixed(1)}%`
-        : `left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%`;
+    const pos = layout[k];
+    // к борту прижимаем только внешние карточки; ближе к центру — центрируем по точке
+    const side = pos.x <= 15 ? 'anchor-l' : pos.x >= 85 ? 'anchor-r' : '';
+    const posStyle = side === 'anchor-r'
+      ? `right:${(100 - pos.x).toFixed(1)}%;top:${pos.y}%`
+      : `left:${pos.x.toFixed(1)}%;top:${pos.y}%`;
 
     return `<div class="${cls} ${side}" style="${posStyle}">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
