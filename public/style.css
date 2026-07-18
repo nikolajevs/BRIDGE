@@ -292,7 +292,8 @@ input::placeholder { color: #6e5b49; }
 .opp-score { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
 /* зелёные сопли: наказание дамой пик стекает по карточке жертвы */
-.opp, .me-info { position: relative; }
+/* .opp уже position:absolute — контекст для соплей есть; relative нужен только панели */
+.me-info { position: relative; }
 .slime { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; overflow: visible; z-index: 5; }
 .slimed { animation: slime-shake .4s ease-in-out; }
 @keyframes slime-shake {
@@ -314,7 +315,7 @@ input::placeholder { color: #6e5b49; }
   border-radius: 0 0 50% 50% / 0 0 14px 14px;
   box-shadow: 0 0 6px rgba(120,220,70,.55), inset 0 -3px 4px rgba(40,110,20,.6);
   opacity: .92;
-  animation: drip-fall 1.5s ease-in forwards;
+  animation: drip-fall 3.4s ease-in forwards;
 }
 /* блик на потёке — «влажность» */
 .slime .drip::before {
@@ -331,9 +332,9 @@ input::placeholder { color: #6e5b49; }
 }
 @keyframes drip-fall {
   0% { height: 0; opacity: 0; }
-  15% { opacity: .95; }
-  60% { height: var(--len, 40px); }
-  80% { height: var(--len, 40px); opacity: .95; }
+  10% { opacity: .95; }
+  35% { height: var(--len, 40px); }
+  88% { height: var(--len, 40px); opacity: .95; }
   100% { height: calc(var(--len, 40px) + 10px); opacity: 0; }
 }
 .opp.out .opp-score { }

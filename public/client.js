@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-queen-2026-07-18';
+const BUILD = 'slime-fix-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1070,7 +1070,7 @@ function splatSlime(el) {
     layer.appendChild(d);
   }
   el.appendChild(layer);
-  setTimeout(() => { layer.remove(); el.classList.remove('slimed'); }, 2600);
+  setTimeout(() => { layer.remove(); el.classList.remove('slimed'); }, 4200);
 }
 
 function refreshSoundBtn() {
