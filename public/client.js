@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'seats-edge-2026-07-17';
+const BUILD = 'sfx-dama-only-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1029,9 +1029,7 @@ function maybePlayCardSfx(g) {
   const top = (g.phase === 'playing' && g.top) ? g.top : null;
   const tid = top ? top.id : null;
   if (tid && tid !== lastTopId) {
-    if (tid === 'Q♠') playSfx('dama-pik');
-    else if (top.r === '7') playSfx('7');
-    else if (top.r === '8') playSfx('8');
+    if (tid === 'Q♠') playSfx('dama-pik');   // единственный звук карты — на даму пик
   }
   lastTopId = tid;
 }
