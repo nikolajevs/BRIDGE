@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'seats-layout-2026-07-17';
+const BUILD = 'seats-edge-2026-07-17';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -463,9 +463,9 @@ function renderGame(g) {
   $('#g-table-name').textContent = `${g.tableName} · ${g.tableId}`;
   $('#g-round').textContent = `${t('round')} ${g.round}`;
 
-  // Соперники сидят по очереди хода (по часовой): первый после меня — левее,
-  // последний передо мной — правее. Раскладки заданы явно под каждое число
-  // игроков — так предсказуемо и никто не наезжает на мою руку и на борта.
+  // Соперники сидят по ВЕРХНЕЙ КРОМКЕ стола (стол — эллипс), чуть выступая
+  // наружу, чтобы карты сброса в центре их не перекрывали. Порядок — по ходу:
+  // первый после меня слева, дальше по дуге вправо к последнему передо мной.
   const opp = $('#opponents');
   const ptsLbl = lang === 'en' ? 'pts' : 'очк.';
   const meIdx = g.youIdx;
@@ -476,16 +476,18 @@ function renderGame(g) {
     others.push({ p: g.players[idx], i: idx });
   }
 
-  // позиции по числу соперников: {x,y} в % от стола; крайних якорим к борту.
-  // 1 соперник — сверху по центру; 2 и больше — дугой сверху.
-  const LAYOUTS = {
-    1: [{ x: 50, y: 8 }],
-    2: [{ x: 22, y: 14 }, { x: 78, y: 14 }],
-    3: [{ x: 14, y: 30 }, { x: 50, y: 6 }, { x: 86, y: 30 }],
-    4: [{ x: 12, y: 40 }, { x: 34, y: 8 }, { x: 66, y: 8 }, { x: 88, y: 40 }],
-    5: [{ x: 10, y: 44 }, { x: 28, y: 12 }, { x: 50, y: 4 }, { x: 72, y: 12 }, { x: 90, y: 44 }],
+  // углы (в градусах) на верхней дуге для каждого числа соперников: 180° — левый
+  // борт, 90° — верх по центру, 0° — правый борт. Заданы явно, чтобы разложить
+  // красиво и симметрично.
+  const ANGLES = {
+    1: [90],
+    2: [150, 30],
+    3: [165, 90, 15],
+    4: [172, 120, 60, 8],
+    5: [174, 130, 90, 50, 6],
   };
-  const layout = LAYOUTS[others.length] || LAYOUTS[5];
+  const angles = ANGLES[others.length] || ANGLES[5];
+  const RX = 49, RY = 56;   // RX по кромке (не вылезать вбок), RY повыше — карточки над столом
 
   opp.innerHTML = others.map((x, k) => {
     const { p, i } = x;
@@ -507,12 +509,15 @@ function renderGame(g) {
 
     const score = p.eliminated ? (lang === 'en' ? 'out' : 'выбыл') : `${p.score} ${ptsLbl}`;
 
-    const pos = layout[k];
-    // к борту прижимаем только внешние карточки; ближе к центру — центрируем по точке
-    const side = pos.x <= 15 ? 'anchor-l' : pos.x >= 85 ? 'anchor-r' : '';
+    const rad = angles[k] * Math.PI / 180;
+    const px = 50 + Math.cos(rad) * RX;   // % по горизонтали
+    const py = 50 - Math.sin(rad) * RY;   // % по вертикали (вверх)
+
+    // у бортов прижимаем карточку краем, а не центром точки (иначе свисает за стол)
+    const side = px <= 18 ? 'anchor-l' : px >= 82 ? 'anchor-r' : '';
     const posStyle = side === 'anchor-r'
-      ? `right:${(100 - pos.x).toFixed(1)}%;top:${pos.y}%`
-      : `left:${pos.x.toFixed(1)}%;top:${pos.y}%`;
+      ? `right:${(100 - px).toFixed(1)}%;top:${py.toFixed(1)}%`
+      : `left:${px.toFixed(1)}%;top:${py.toFixed(1)}%`;
 
     return `<div class="${cls} ${side}" style="${posStyle}">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
