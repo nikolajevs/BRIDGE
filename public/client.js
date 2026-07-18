@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'circle-seats-2026-07-17';
+const BUILD = 'circle-wide-2026-07-17';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -511,7 +511,16 @@ function renderGame(g) {
     const x0 = 50 - Math.cos(angle) * rx;        // % по горизонтали
     const y0 = cy - Math.sin(angle) * ry;        // % по вертикали (верхняя дуга)
 
-    return `<div class="${cls}" style="left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%">
+    // у бортов не центрируем карточку по точке (иначе половина свисает за стол),
+    // а прижимаем краем — тогда крайних можно увести к самому бортику
+    const side = x0 < 34 ? 'anchor-l' : x0 > 66 ? 'anchor-r' : '';
+    const posStyle = side === 'anchor-l'
+      ? `left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%`
+      : side === 'anchor-r'
+        ? `right:${(100 - x0).toFixed(1)}%;top:${y0.toFixed(1)}%`
+        : `left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%`;
+
+    return `<div class="${cls} ${side}" style="${posStyle}">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
       <div class="opp-cards">${minis}${countTag}</div>
       <div class="opp-score">${score}</div>

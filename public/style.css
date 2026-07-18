@@ -1,7 +1,7 @@
 /* «Бридж» — ночная кухня: орех, сукно, свет лампы */
 
 :root {
-  --arc-rx: 38; --arc-ry: 44; --arc-cy: 42;
+  --arc-rx: 46; --arc-ry: 44; --arc-cy: 42;
   --bg: #221713;
   --bg-2: #2c1f19;
   --felt: #24463a;
@@ -236,6 +236,9 @@ input::placeholder { color: #6e5b49; }
   backdrop-filter: blur(2px);
   transition: box-shadow .2s ease, border-color .2s ease;
 }
+/* у бортов прижимаем краем: по вертикали центрируем, по горизонтали — нет */
+.opp.anchor-l { transform: translateY(-50%); }
+.opp.anchor-r { transform: translateY(-50%); }
 .opp.turn {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 0 26px rgba(217,164,65,.45);
@@ -522,7 +525,7 @@ input::placeholder { color: #6e5b49; }
   .brand { font-size: 68px; }
   .felt { padding-top: 38px; }
   .felt-inner { gap: 24px; border-width: 7px; }
-  :root { --arc-rx: 36; --arc-ry: 44; --arc-cy: 42; }
+  :root { --arc-rx: 44; --arc-ry: 44; --arc-cy: 42; }
   .opp { min-width: 66px; max-width: 92px; padding: 4px 6px; }
   .opp-name { font-size: 11px; max-width: 84px; }
   .opp-cards { height: 16px; margin: 3px 0 2px; }
