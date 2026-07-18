@@ -294,22 +294,11 @@ input::placeholder { color: #6e5b49; }
 /* зелёные сопли: наказание дамой пик стекает по карточке жертвы */
 /* .opp уже position:absolute — контекст для соплей есть; relative нужен только панели */
 .me-info { position: relative; }
-.slime { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; overflow: visible; z-index: 5; }
-.slimed { animation: slime-shake .4s ease-in-out; }
-@keyframes slime-shake {
-  0%, 100% { transform: translate(-50%, -50%); }
-  25% { transform: translate(-51%, -49%) rotate(-1.5deg); }
-  75% { transform: translate(-49%, -51%) rotate(1.5deg); }
-}
-/* у прижатых к бортам карточек своя база transform — трясём отдельно */
-.opp.anchor-l.slimed, .opp.anchor-r.slimed { animation: slime-shake-side .4s ease-in-out; }
-@keyframes slime-shake-side {
-  0%, 100% { transform: translateY(-50%); }
-  25% { transform: translateY(-49%) rotate(-1.5deg); }
-  75% { transform: translateY(-51%) rotate(1.5deg); }
-}
-.me-info.slimed { animation: none; }
-.slime .drip {
+/* слой эффектов поверх стола: сопли живут здесь, а не внутри карточек,
+   поэтому не стираются при перерисовке карточек на каждом обновлении игры */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: visible; }
+.slime-splat { position: absolute; pointer-events: none; }
+.slime-splat .drip {
   position: absolute; top: -3px; width: var(--w, 10px); height: 0;
   background: linear-gradient(#8ede4a, #5bbd2e 60%, #3f9e1f);
   border-radius: 0 0 50% 50% / 0 0 14px 14px;
@@ -318,13 +307,13 @@ input::placeholder { color: #6e5b49; }
   animation: drip-fall 3.4s ease-in forwards;
 }
 /* блик на потёке — «влажность» */
-.slime .drip::before {
+.slime-splat .drip::before {
   content: ''; position: absolute; top: 4px; left: 22%;
   width: 26%; height: 40%; background: rgba(220,255,190,.55);
   border-radius: 50%;
 }
 /* капля на кончике */
-.slime .drip::after {
+.slime-splat .drip::after {
   content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
   width: calc(var(--w, 10px) * .9); height: calc(var(--w, 10px) * .9);
   background: radial-gradient(circle at 40% 35%, #9dee5c, #4ea828);
@@ -580,7 +569,7 @@ input::placeholder { color: #6e5b49; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
-  .slime .drip, .slimed { animation-duration: .01s !important; }
-  .slime { display: none; }
+  .slime-splat .drip { animation-duration: .01s !important; }
+  .slime-splat { display: none; }
 }
 

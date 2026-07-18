@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-fix-2026-07-18';
+const BUILD = 'slime-layer-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1042,23 +1042,31 @@ function maybePlayCardSfx(g) {
 function splatQueenVictim(g) {
   const victim = g.turnIdx;
   if (victim < 0) return;
-  const target = g.players[victim] && g.players[victim].you
+  const anchor = g.players[victim] && g.players[victim].you
     ? $('#me-info')
     : document.querySelector(`.opp[data-pidx="${victim}"]`);
-  if (!target) return;
-  splatSlime(target);
+  if (!anchor) return;
+  splatSlime(anchor);
 }
 
-function splatSlime(el) {
-  el.classList.remove('slimed');
-  void el.offsetWidth;               // сброс, чтобы анимация повторялась подряд
-  el.classList.add('slimed');
+// Эффект живёт в отдельном слое поверх стола, а НЕ внутри карточки: карточки
+// пересоздаются при каждом обновлении игры (тик таймера, смена хода), и сопли
+// внутри них тут же стирались бы. Слой позиционируем по месту карточки-жертвы.
+function splatSlime(anchor) {
+  const layer = $('#fx-layer');
+  if (!layer) return;
+  const host = layer.offsetParent || layer.parentElement;
+  const hostRect = host.getBoundingClientRect();
+  const r = anchor.getBoundingClientRect();
 
-  // несколько потёков разной длины и задержки — живее, чем одна полоса
-  let layer = el.querySelector('.slime');
-  if (layer) layer.remove();
-  layer = document.createElement('div');
-  layer.className = 'slime';
+  const splat = document.createElement('div');
+  splat.className = 'slime-splat';
+  // координаты карточки в системе слоя (в px)
+  splat.style.left = (r.left - hostRect.left) + 'px';
+  splat.style.top = (r.top - hostRect.top) + 'px';
+  splat.style.width = r.width + 'px';
+  splat.style.height = r.height + 'px';
+
   const drips = 5;
   for (let i = 0; i < drips; i++) {
     const d = document.createElement('span');
@@ -1067,10 +1075,10 @@ function splatSlime(el) {
     d.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
     d.style.setProperty('--len', (26 + Math.random() * 26).toFixed(0) + 'px');
     d.style.setProperty('--w', (7 + Math.random() * 6).toFixed(0) + 'px');
-    layer.appendChild(d);
+    splat.appendChild(d);
   }
-  el.appendChild(layer);
-  setTimeout(() => { layer.remove(); el.classList.remove('slimed'); }, 4200);
+  layer.appendChild(splat);
+  setTimeout(() => splat.remove(), 4200);
 }
 
 function refreshSoundBtn() {
