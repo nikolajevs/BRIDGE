@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-inbounds-2026-07-18';
+const BUILD = 'slime-symmetry-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1061,17 +1061,19 @@ function splatSlime(anchor) {
 
   const splat = document.createElement('div');
   splat.className = 'slime-splat';
-  // координаты карточки в системе слоя (в px)
-  splat.style.left = (r.left - hostRect.left) + 'px';
+  // небольшой внутренний отступ по бокам, чтобы крайние потёки гарантированно
+  // не прилегали к краям карточки (проценты потёков считаются от этой ширины)
+  const pad = Math.max(6, r.width * 0.1);
+  splat.style.left = (r.left - hostRect.left + pad) + 'px';
   splat.style.top = (r.top - hostRect.top) + 'px';
-  splat.style.width = r.width + 'px';
+  splat.style.width = (r.width - pad * 2) + 'px';
   splat.style.height = r.height + 'px';
 
   const drips = 5;
   for (let i = 0; i < drips; i++) {
     const d = document.createElement('span');
     d.className = 'drip';
-    d.style.left = (16 + i * (68 / (drips - 1))) + '%';   // 16%..84%, с запасом от краёв
+    d.style.left = (10 + i * (80 / (drips - 1))) + '%';   // равномерно внутри splat с отступами
     d.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
     d.style.setProperty('--len', (26 + Math.random() * 26).toFixed(0) + 'px');
     d.style.setProperty('--w', (6 + Math.random() * 4).toFixed(0) + 'px');   // 6..10px
