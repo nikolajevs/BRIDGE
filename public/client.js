@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-layer-2026-07-18';
+const BUILD = 'slime-inbounds-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1071,10 +1071,10 @@ function splatSlime(anchor) {
   for (let i = 0; i < drips; i++) {
     const d = document.createElement('span');
     d.className = 'drip';
-    d.style.left = (8 + i * (84 / (drips - 1))) + '%';
+    d.style.left = (16 + i * (68 / (drips - 1))) + '%';   // 16%..84%, с запасом от краёв
     d.style.animationDelay = (Math.random() * 0.25).toFixed(2) + 's';
     d.style.setProperty('--len', (26 + Math.random() * 26).toFixed(0) + 'px');
-    d.style.setProperty('--w', (7 + Math.random() * 6).toFixed(0) + 'px');
+    d.style.setProperty('--w', (6 + Math.random() * 4).toFixed(0) + 'px');   // 6..10px
     splat.appendChild(d);
   }
   layer.appendChild(splat);

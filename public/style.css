@@ -300,9 +300,10 @@ input::placeholder { color: #6e5b49; }
 .slime-splat { position: absolute; pointer-events: none; }
 .slime-splat .drip {
   position: absolute; top: -3px; width: var(--w, 10px); height: 0;
+  transform: translateX(-50%);       /* left — центр потёка, а не левый край */
   background: linear-gradient(#8ede4a, #5bbd2e 60%, #3f9e1f);
   border-radius: 0 0 50% 50% / 0 0 14px 14px;
-  box-shadow: 0 0 6px rgba(120,220,70,.55), inset 0 -3px 4px rgba(40,110,20,.6);
+  box-shadow: 0 0 3px rgba(120,220,70,.5), inset 0 -3px 4px rgba(40,110,20,.6);
   opacity: .92;
   animation: drip-fall 3.4s ease-in forwards;
 }
