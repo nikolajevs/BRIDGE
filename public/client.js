@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'tg-miniapp-2026-07-17';
+const BUILD = 'circle-seats-2026-07-17';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -463,11 +463,23 @@ function renderGame(g) {
   $('#g-table-name').textContent = `${g.tableName} · ${g.tableId}`;
   $('#g-round').textContent = `${t('round')} ${g.round}`;
 
-  // соперники (и я в общем ряду, если игроков > 2 — показываем всех кроме себя)
+  // Соперники сидят по дуге вокруг стола — как за настоящим столом.
+  // Я всегда снизу; иду по очереди хода (по часовой): тот, кто ходит сразу
+  // после меня, садится слева, дальше по верхней дуге направо к последнему
+  // передо мной. Так очередь читается визуально: слева → вверх → вправо.
   const opp = $('#opponents');
   const ptsLbl = lang === 'en' ? 'pts' : 'очк.';
-  opp.innerHTML = g.players.map((p, i) => {
-    if (p.you) return '';
+  const meIdx = g.youIdx;
+  const total = g.players.length;
+  const others = [];
+  for (let step = 1; step < total; step++) {
+    const idx = (meIdx + step) % total;
+    others.push({ p: g.players[idx], i: idx });
+  }
+
+  const m = others.length;
+  opp.innerHTML = others.map((x, k) => {
+    const { p, i } = x;
     const cls = [
       'opp',
       i === g.turnIdx ? 'turn' : '',
@@ -475,15 +487,33 @@ function renderGame(g) {
       p.connected ? '' : 'offline',
       (p.count === 1 && !p.eliminated) ? 'one-card' : '',
     ].join(' ');
-    const n = Math.min(p.count, 8);
+
+    // до 5 рубашек, остальное — числом; так карточка компактнее и влезает в круг
+    const shown = Math.min(p.count, 5);
     let minis = '';
-    for (let k = 0; k < n; k++) minis += '<div class="mini"></div>';
-    if (p.count > 8) minis += `<span class="more">+${p.count - 8}</span>`;
-    if (p.count === 0 && !p.eliminated) minis = '<span class="more">—</span>';
+    for (let s = 0; s < shown; s++) minis += '<div class="mini"></div>';
+    let countTag = '';
+    if (p.count > 5) countTag = `<span class="more">${p.count}</span>`;
+    else if (p.count === 0 && !p.eliminated) minis = '<span class="more">—</span>';
+
     const score = p.eliminated ? (lang === 'en' ? 'out' : 'выбыл') : `${p.score} ${ptsLbl}`;
-    return `<div class="${cls}">
+
+    // позиция на дуге: один соперник — сверху по центру; несколько — по часовой
+    // от меня, поэтому идём справа налево по углу (следующий игрок оказывается слева).
+    // Радиусы берём из CSS, чтобы на телефоне дуга была уже и никто не уезжал за край.
+    const cs = getComputedStyle(document.documentElement);
+    const rx = parseFloat(cs.getPropertyValue('--arc-rx')) || 42;
+    const ry = parseFloat(cs.getPropertyValue('--arc-ry')) || 40;
+    const cy = parseFloat(cs.getPropertyValue('--arc-cy')) || 46;
+    const cnt = others.length;
+    const frac = cnt === 1 ? 0.5 : k / (cnt - 1);
+    const angle = Math.PI * frac;                // 0 (слева) → π (справа)
+    const x0 = 50 - Math.cos(angle) * rx;        // % по горизонтали
+    const y0 = cy - Math.sin(angle) * ry;        // % по вертикали (верхняя дуга)
+
+    return `<div class="${cls}" style="left:${x0.toFixed(1)}%;top:${y0.toFixed(1)}%">
       <div class="opp-name">${i === g.dealerIdx ? '<span class="dealer">◈</span> ' : ''}${esc(p.name)}</div>
-      <div class="opp-cards">${minis}</div>
+      <div class="opp-cards">${minis}${countTag}</div>
       <div class="opp-score">${score}</div>
     </div>`;
   }).join('');
