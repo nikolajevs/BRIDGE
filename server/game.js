@@ -477,6 +477,8 @@ class Game {
       if (this.pendingQueen) {
         this.pendingQueen = false;
         const k = this.drawN(q, 5);
+        this.queenVictimIdx = j;          // именно этого игрока облили — для анимации на клиенте
+        this.queenHitSeq = (this.queenHitSeq || 0) + 1;
         this.addLog(`${q.name} берёт ${k} карт (дама пик) и пропускает ход`);
         continue;
       }
@@ -601,6 +603,8 @@ class Game {
       })),
       hand: me ? me.hand.map(c => ({ id: c.id, r: c.r, s: c.s, playable: playable(c) })) : [],
       top: this.top(),
+      queenVictimIdx: this.queenVictimIdx ?? -1,   // кого облили дамой пик (для анимации)
+      queenHitSeq: this.queenHitSeq || 0,          // счётчик ударов — отличить новый от перерисовки
       topCards: this.discard.slice(-3),   // последние три — показываем стопкой
       jackSuit: this.jackSuit,
       pendingDraw: this.pendingDraw,

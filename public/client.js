@@ -2,7 +2,7 @@
 
 /* Клиент игры «Бридж» */
 
-const BUILD = 'slime-hand-2026-07-18';
+const BUILD = 'slime-victim-fix-2026-07-18';
 console.log('Бридж client build:', BUILD);
 
 // Ссылка для пожертвований (одна на все места, где она показывается)
@@ -1024,24 +1024,22 @@ function playSfx(name) {
 
 // Звук играем, когда на стол легла НОВАЯ карта: даму пик ловим по конкретной
 // карте, семёрку — по достоинству (их в колоде четыре).
-let lastTopId = null;
+let lastQueenSeq = 0;
 function maybePlayCardSfx(g) {
-  const top = (g.phase === 'playing' && g.top) ? g.top : null;
-  const tid = top ? top.id : null;
-  if (tid && tid !== lastTopId) {
-    if (tid === 'Q♠') {
-      playSfx('dama-pik');           // единственный звук карты — на даму пик
-      splatQueenVictim(g);           // и зелёные сопли тому, кому прилетело
-    }
+  // удар дамой пик определяет сервер: queenHitSeq растёт на каждый удар,
+  // queenVictimIdx — кого облили. Так жертва точная, а не «кто ходит следующим».
+  const seq = g.queenHitSeq || 0;
+  if (g.phase === 'playing' && seq > lastQueenSeq) {
+    playSfx('dama-pik');
+    splatQueenVictim(g);
   }
-  lastTopId = tid;
+  lastQueenSeq = seq;
 }
 
-// Дама пик наказывает следующего игрока (ход уже перешёл к нему — это turnIdx).
-// Пускаем по его карточке стекающие зелёные сопли.
+// Дама пик наказывает игрока, которого назвал сервер (queenVictimIdx).
 function splatQueenVictim(g) {
-  const victim = g.turnIdx;
-  if (victim < 0) return;
+  const victim = g.queenVictimIdx;
+  if (victim == null || victim < 0) return;
   const anchor = g.players[victim] && g.players[victim].you
     ? $('#me-info')
     : document.querySelector(`.opp[data-pidx="${victim}"]`);
